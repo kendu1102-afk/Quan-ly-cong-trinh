@@ -71,3 +71,10 @@ input, select, textarea { font-size: 17px; }
 .tab-ct { white-space: nowrap; border-radius: 9999px; padding: .6rem 1.1rem; font-weight: 600; background: rgba(255,255,255,.95);
   color: #0a2a66; border: 1px solid rgba(10,42,102,.18); }
 .tab-ct.active { background: linear-gradient(180deg, #1b4aa3, #0a2a66); color: #fff; border-color: var(--color-gold); box-shadow: 0 4px 12px -4px rgba(10,42,102,.6); }
+
+/* Ba ô chức năng lớn ở trang chính */
+.tile-lon { min-height: 8.5rem; gap: .6rem; font-size: 1.45rem; border-radius: 1.25rem; }
+.tile-lon .tile-bd { width: 4.5rem; height: 4.5rem; font-size: 2.6rem; }
+@media (min-width: 640px) { .tile-lon { min-height: 11rem; font-size: 1.6rem; } }
+.thanh-tien { height: .6rem; border-radius: 9999px; background: rgba(10,42,102,.12); overflow: hidden; }
+.thanh-tien > i { display: block; height: 100%; border-radius: 9999px; }

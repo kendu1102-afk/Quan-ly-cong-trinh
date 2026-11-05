@@ -4,6 +4,8 @@ import { useCT } from '../lib/ct'
 import { useAuth } from '../lib/auth'
 import { fmtNgay, fmtTien, TRANG_THAI } from '../lib/tinh'
 import { Dang, Huy, Nut, Rong, The, TieuDe } from '../components/ui'
+import ChonCongTrinh from '../components/ChonCongTrinh'
+import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { FormCT } from './DanhSachCT'
 import NhapVT from './ct/NhapVT'
@@ -19,16 +21,23 @@ export default function TrangCT() {
   const { id, tab } = useParams()
   const { ds, dangTai, chon } = useCT()
   const { isAdmin } = useAuth()
+  const nav = useNavigate()
+  const [doi, setDoi] = useState(false)
   const ct = ds.find((c) => c.id === id)
   useEffect(() => { if (id && ct) chon(id) }, [id, ct?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (dangTai) return <Dang />
   if (!ct) return <Rong t="Không tìm thấy công trình hoặc bạn chưa được cấp quyền." />
   return (
     <div className="space-y-3">
+      <div className="the the-vang flex items-center gap-3 !py-2">
+        <div className="min-w-0 flex-1"><div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Công trình</div><div className="line-clamp-2 font-extrabold leading-snug text-brand">{ct.ten}</div></div>
+        <Nut mau="phu" className="min-h-10 shrink-0 px-3 text-sm" onClick={() => setDoi(true)}>🔄 Đổi công trình</Nut>
+      </div>
       <div className="-mx-3 overflow-x-auto px-3"><div className="flex w-max gap-2">
         {TABS.map(([k, t]) => <NavLink key={k} to={`/ct/${ct.id}/${k}`} className={({ isActive }) => `tab-ct ${isActive ? 'active' : ''}`}>{t}</NavLink>)}
       </div></div>
       {ct.luu_tru && <div className="rounded-xl bg-slate-200 p-2 text-center text-sm">📦 Công trình đã lưu trữ (chỉ để tra cứu)</div>}
+      {doi && <ChonCongTrinh tieuDe="Chuyển sang công trình khác" dong={() => setDoi(false)} chon={(nid) => { chon(nid); setDoi(false); nav(`/ct/${nid}/${tab ?? 'thong-tin'}`) }} />}
       {tab === 'thong-tin' && <ThongTin ct={ct} sua={isAdmin} />}
       {tab === 'vat-tu-mau' && <VatTuMau ct={ct.id} />}
       {tab === 'nhap-vt' && <NhapVT ct={ct.id} />}

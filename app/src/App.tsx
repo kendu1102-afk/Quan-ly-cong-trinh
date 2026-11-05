@@ -31,7 +31,7 @@ function TrangThaiMang() {
 
 function Khung() {
   const { ho, isAdmin, thoat } = useAuth()
-  const { ds, cur, chon } = useCT()
+  const { cur } = useCT()
   const nav = useNavigate()
   const [them, setThem] = useState(false)
   const [dayTB, setDayTB] = useState(false)
@@ -54,11 +54,6 @@ function Khung() {
           </div>
           <button onClick={() => setThem(true)} className="tk-nut min-h-11 max-w-[8.5rem] shrink-0 truncate rounded-xl px-3 text-sm font-semibold">{ho?.ho_ten || 'Tài khoản'} ▾</button>
         </div>
-        <select value={cur ?? ''} onChange={(e) => { chon(e.target.value); nav(`/ct/${e.target.value}`) }}
-          className="chon-ct mt-2 min-h-11 w-full rounded-xl px-3 font-semibold">
-          {!ds.length && <option className="text-black">(Chưa có công trình)</option>}
-          {ds.map((c) => <option key={c.id} value={c.id} className="text-black">{c.luu_tru ? '📦 ' : ''}{c.ten} ({c.nam})</option>)}
-        </select>
       </header>
       <main className="p-3">
         <Routes>
