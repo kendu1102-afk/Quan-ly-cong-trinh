@@ -16,7 +16,7 @@ export default function VatTuMau({ ct }: { ct: string }) {
   const q = useVatTu(ct)
   const full = useVatTuFull(ct)
   const dm = useDanhMuc()
-  const [q2, setQ] = useState(''); const [sua, setSua] = useState<Mau | null>(null); const [xem, setXem] = useState<{ ten: string; dvt: string; khoi_luong_dt: number; don_gia_dt: number; dong: number; loi?: string }[] | null>(null)
+  const [q2, setQ] = useState(''); const [nhieu, setNhieu] = useState(false); const [sua, setSua] = useState<Mau | null>(null); const [xem, setXem] = useState<{ ten: string; dvt: string; khoi_luong_dt: number; don_gia_dt: number; dong: number; loi?: string }[] | null>(null)
   const file = useRef<HTMLInputElement>(null)
   const bo = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd')
   if (q.dangTai || full.dangTai) return <Dang />
@@ -44,7 +44,8 @@ export default function VatTuMau({ ct }: { ct: string }) {
       }])}>⬇ Excel</Nut>}>Vật tư theo dự toán</TieuDe>
       {isAdmin ? (
         <div className="flex flex-wrap gap-2">
-          <Nut onClick={() => setSua({ ten: '', dvt: '', khoi_luong_dt: 0, don_gia_dt: 0 })}>＋ Thêm vật tư</Nut>
+          <Nut onClick={() => { dm.tai(); setSua({ ten: '', dvt: '', khoi_luong_dt: 0, don_gia_dt: 0 }) }}>＋ Thêm vật tư</Nut>
+          <Nut mau="vang" onClick={() => { dm.tai(); setNhieu(true) }}>📚 Chọn nhiều từ danh mục</Nut>
           <Nut mau="phu" onClick={() => file.current?.click()}>📥 Nhập từ Excel</Nut>
           <Nut mau="xam" onClick={mauVatTu}>Tải file mẫu</Nut>
           <input ref={file} type="file" accept=".xlsx" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) nhap(f) }} />
@@ -64,6 +65,7 @@ export default function VatTuMau({ ct }: { ct: string }) {
         </div></The>
       ))}
       {!!ds.length && <div className="text-right font-semibold num">Tổng dự toán vật tư: {fmtTien(tong((full.data ?? []).map((x) => so(x.khoi_luong_dt) * so(x.don_gia_dt))))} đ</div>}
+      {nhieu && <ChonNhieu ct={ct} dm={dm.data ?? []} daCo={(full.data ?? []).map((x) => x.ten)} dong={() => setNhieu(false)} xong={() => { setNhieu(false); full.tai() }} />}
       {sua && <FormMau m={sua} ct={ct} dm={dm.data ?? []} dong={() => setSua(null)} xong={() => { setSua(null); full.tai() }} />}
       {xem && (
         <Modal tieuDe={`Xem trước: ${xem.length} dòng`} dong={() => setXem(null)}>
@@ -114,6 +116,63 @@ function FormMau({ m, ct, dm, dong, xong }: { m: Mau; ct: string; dm: DanhMuc[];
           <label className="flex items-center gap-3 rounded-xl bg-amber-50 p-3 text-sm"><input type="checkbox" className="h-6 w-6" checked={luuDM} onChange={(e) => setLuuDM(e.target.checked)} />Lưu vật tư này vào danh mục vật tư mẫu chung để công trình khác dùng lại</label>
         )}
         <Loi t={loi} /><Nut className="w-full" onClick={luu}>Lưu</Nut>
+      </div>
+    </Modal>
+  )
+}
+
+/** Tick chọn nhiều vật tư từ danh mục chung, nhập khối lượng dự toán cho từng vật tư rồi thêm một lượt */
+function ChonNhieu({ ct, dm, daCo, dong, xong }: { ct: string; dm: DanhMuc[]; daCo: string[]; dong: () => void; xong: () => void }) {
+  const [tim, setTim] = useState(''); const [sel, setSel] = useState<Record<string, { kl: string; dg: string }>>({}); const [loi, setLoi] = useState(''); const [ban, setBan] = useState(false)
+  const bo = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd')
+  const co = new Set(daCo.map((t) => t.trim().toLowerCase()))
+  const chua = dm.filter((x) => !co.has(x.ten.trim().toLowerCase()))
+  const hien = chua.filter((x) => bo(`${x.ten} ${x.dvt}`).includes(bo(tim)))
+  const dem = Object.keys(sel).length
+  const bat = (x: DanhMuc) => setSel((s) => { const n = { ...s }; if (n[x.id]) delete n[x.id]; else n[x.id] = { kl: '', dg: x.don_gia ? String(x.don_gia) : '' }; return n })
+  const luu = async () => {
+    setLoi('')
+    const rows = []
+    for (const x of chua.filter((d) => sel[d.id])) {
+      const kl = docSo(sel[x.id].kl), dg = sel[x.id].dg === '' ? 0 : docSo(sel[x.id].dg)
+      if (!(kl > 0)) return setLoi(`“${x.ten}”: nhập khối lượng dự toán (lớn hơn 0)`)
+      if (!(dg >= 0)) return setLoi(`“${x.ten}”: đơn giá không hợp lệ`)
+      rows.push({ cong_trinh_id: ct, ten: x.ten, dvt: x.dvt, khoi_luong_dt: kl, don_gia_dt: dg })
+    }
+    if (!rows.length) return setLoi('Chưa chọn vật tư nào')
+    setBan(true)
+    const { error } = await supabase.from('vat_tu_mau').insert(rows)
+    setBan(false)
+    if (error) return setLoi(error.message.includes('duplicate') ? 'Có vật tư đã tồn tại trong công trình, hãy mở lại danh sách.' : error.message)
+    thongBao(`Đã thêm ${rows.length} vật tư vào dự toán`); xong()
+  }
+  return (
+    <Modal tieuDe="Chọn nhiều vật tư từ danh mục" dong={dong}>
+      <div className="space-y-3">
+        {!chua.length ? <Rong t={dm.length ? 'Công trình đã có đủ mọi vật tư trong danh mục.' : 'Danh mục đang trống. Nhập vật tư ở menu “Nhập vật tư mẫu”.'} /> : <>
+          <input className={o} placeholder="🔍 Gõ để tìm trong danh mục…" value={tim} onChange={(e) => setTim(e.target.value)} />
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <Nut mau="xam" className="min-h-10 px-3 text-sm" onClick={() => setSel((s) => { const n = { ...s }; hien.forEach((x) => { if (!n[x.id]) n[x.id] = { kl: '', dg: x.don_gia ? String(x.don_gia) : '' } }); return n })}>Chọn tất cả đang hiện ({hien.length})</Nut>
+            <Nut mau="xam" className="min-h-10 px-3 text-sm" onClick={() => setSel({})}>Bỏ chọn hết</Nut>
+            <span className="text-slate-600">Đã chọn: <b>{dem}</b></span>
+          </div>
+          <div className="max-h-[50vh] space-y-2 overflow-y-auto">
+            {hien.map((x) => (
+              <div key={x.id} className={`rounded-xl border p-2 ${sel[x.id] ? 'border-gold bg-amber-50' : 'border-slate-200 bg-slate-50'}`}>
+                <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="h-6 w-6" checked={!!sel[x.id]} onChange={() => bat(x)} /><span><b>{x.ten}</b> <span className="text-slate-500">({x.dvt})</span></span></label>
+                {sel[x.id] && (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <input className={o} inputMode="decimal" placeholder="Khối lượng dự toán" value={sel[x.id].kl} onChange={(e) => setSel((s) => ({ ...s, [x.id]: { ...s[x.id], kl: e.target.value } }))} />
+                    <input className={o} inputMode="decimal" placeholder="Đơn giá dự toán" value={sel[x.id].dg} onChange={(e) => setSel((s) => ({ ...s, [x.id]: { ...s[x.id], dg: e.target.value } }))} />
+                  </div>
+                )}
+              </div>
+            ))}
+            {!hien.length && <Rong t="Không tìm thấy" />}
+          </div>
+          <Loi t={loi} />
+          <Nut mau="vang" className="w-full" disabled={ban || !dem} onClick={luu}>{ban ? 'Đang thêm…' : `Thêm ${dem} vật tư vào công trình`}</Nut>
+        </>}
       </div>
     </Modal>
   )
