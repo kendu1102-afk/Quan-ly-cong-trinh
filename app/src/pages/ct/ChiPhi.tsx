@@ -161,7 +161,7 @@ export default function ChiPhi({ ct }: { ct: string }) {
         ))}
         <Nut mau="phu" className="w-full" onClick={() => setDongs((a) => [...a, dongMoi()])}>＋ Thêm khoản chi khác</Nut>
         <div className="text-lg">Tổng: <b className="num text-brand">{fmtTien(tong(dongs.map((d) => docSo(d.tien) || 0)))}</b> đ</div>
-        <Loi t={loi} /><Nut className="w-full text-lg" disabled={ban} onClick={luu}>{ban ? 'Đang lưu…' : '💾 LƯU CHI PHÍ'}</Nut>
+        <Loi t={loi} /><Nut mau="vang" className="w-full text-lg" disabled={ban} onClick={luu}>{ban ? 'Đang lưu…' : '💾 LƯU CHI PHÍ'}</Nut>
       </The>
       <TieuDe phai={<Nut mau="phu" className="min-h-10 px-3 text-sm" onClick={() => setXem(!xem)}>{xem ? 'Thu gọn' : '🔍 Lọc'}</Nut>}>Lịch sử chi phí</TieuDe>
       {xem && (

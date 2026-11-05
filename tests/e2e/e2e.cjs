@@ -71,7 +71,7 @@ const chonVT = async (p, i, ten) => { await p.locator('button', { hasText: 'Ch�
   buoc('4. Phân quyền qua giao diện')
   await a.goto(URL + '#/tai-khoan'); await a.getByText('Kế toán Một').waitFor()
   const quyen = async (ten, cts) => {
-    await a.locator('div.rounded-2xl', { hasText: ten }).first().getByRole('button', { name: 'Phân quyền công trình' }).click()
+    await a.locator('div.the', { hasText: ten }).first().getByRole('button', { name: 'Phân quyền công trình' }).click()
     for (const c of cts) await a.locator('label', { hasText: c }).click()
     await a.getByRole('button', { name: 'Lưu phân quyền' }).click(); await toast(a, 'Đã cập nhật phân quyền')
   }

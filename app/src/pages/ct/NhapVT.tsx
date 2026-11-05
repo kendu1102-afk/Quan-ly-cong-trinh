@@ -83,7 +83,7 @@ export default function NhapVT({ ct }: { ct: string }) {
           <Nut mau="phu" className="w-full" onClick={() => setDongs((a) => [...a, dongMoi()])}>＋ Thêm vật tư khác</Nut>
           <div className="text-lg">Tổng phiếu: <b className="num text-brand">{fmtTien(tong(dongs.map(tinh)))}</b> đ</div>
           <Loi t={loi} />
-          <Nut className="w-full text-lg" disabled={ban} onClick={luu}>{ban ? 'Đang lưu…' : '💾 LƯU PHIẾU NHẬP'}</Nut>
+          <Nut mau="vang" className="w-full text-lg" disabled={ban} onClick={luu}>{ban ? 'Đang lưu…' : '💾 LƯU PHIẾU NHẬP'}</Nut>
         </The>
       )}
       <TieuDe phai={<Nut mau="phu" className="min-h-10 px-3 text-sm" onClick={() => setXem(!xem)}>{xem ? 'Thu gọn lọc' : '🔍 Lọc'}</Nut>}>Lịch sử nhập vật tư</TieuDe>

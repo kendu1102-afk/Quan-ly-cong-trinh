@@ -9,14 +9,14 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.png', 'logo.webp', 'nen.webp'],
       manifest: {
         name: 'Quản Lý Công Trình',
         short_name: 'QL Công Trình',
         description: 'Quản lý vật tư, chi phí và tài chính công trình',
         lang: 'vi',
-        theme_color: '#0f3d63',
-        background_color: '#f4f6f9',
+        theme_color: '#0a2a66',
+        background_color: '#eef3fb',
         display: 'standalone',
         start_url: '.',
         icons: [
@@ -25,7 +25,7 @@ export default defineConfig({
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: { globPatterns: ['**/*.{js,css,html,svg,png}'], navigateFallback: 'index.html' },
+      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,webp}'], navigateFallback: 'index.html' },
     }),
   ],
   build: { chunkSizeWarningLimit: 900 },

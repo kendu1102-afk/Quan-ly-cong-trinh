@@ -34,21 +34,28 @@ function Khung() {
   const [them, setThem] = useState(false)
   const ct = cur ? `/ct/${cur}` : '/ct'
   const item = (to: string, bieu: string, ten: string) => (
-    <NavLink to={to} className={({ isActive }) => `flex flex-1 flex-col items-center justify-center py-1.5 text-xs font-semibold ${isActive ? 'text-brand' : 'text-slate-500'}`}>
+    <NavLink to={to} end={to === '/'} className={({ isActive }) => `flex flex-1 flex-col items-center justify-center py-1.5 text-xs font-semibold ${isActive ? 'active' : ''}`}>
       <span className="text-2xl leading-none">{bieu}</span>{ten}
     </NavLink>
   )
   return (
     <div className="mx-auto min-h-screen max-w-5xl pb-24">
       <TrangThaiMang />
-      <header className="sticky top-0 z-30 flex items-center gap-2 bg-brand px-3 py-2 text-white">
-        <span className="hidden font-bold sm:block">QL CÔNG TRÌNH</span>
+      <header className="dau-trang sticky top-0 z-30 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <NavLink to="/" aria-label="Trang chủ"><img src="/logo.webp" alt="Logo" className="h-12 w-auto shrink-0" /></NavLink>
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="truncate text-[11px] font-semibold tracking-wide text-brand-2 sm:text-sm">CÔNG TY TNHH XÂY DỰNG</div>
+            <div className="truncate text-xl font-extrabold tracking-wide text-brand sm:text-2xl">TRƯỜNG LỘ</div>
+            <div className="hidden truncate text-xs italic text-gold sm:block">Kiến tạo hạ tầng - Vững bước tương lai</div>
+          </div>
+          <button onClick={() => setThem(true)} className="min-h-11 max-w-[8.5rem] shrink-0 truncate rounded-xl border border-brand/25 bg-white px-3 text-sm font-semibold text-brand">{ho?.ho_ten || 'Tài khoản'} ▾</button>
+        </div>
         <select value={cur ?? ''} onChange={(e) => { chon(e.target.value); nav(`/ct/${e.target.value}`) }}
-          className="min-h-11 min-w-0 flex-1 rounded-lg bg-white/15 px-2 font-semibold text-white">
+          className="chon-ct mt-2 min-h-11 w-full rounded-xl px-3 font-semibold">
           {!ds.length && <option className="text-black">(Chưa có công trình)</option>}
           {ds.map((c) => <option key={c.id} value={c.id} className="text-black">{c.luu_tru ? '📦 ' : ''}{c.ten} ({c.nam})</option>)}
         </select>
-        <button onClick={() => setThem(true)} className="min-h-11 rounded-lg bg-white/15 px-3 text-sm">{ho?.ho_ten || 'Tài khoản'} ▾</button>
       </header>
       <main className="p-3">
         <Routes>
@@ -61,11 +68,11 @@ function Khung() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-white pb-[env(safe-area-inset-bottom)]">
+      <nav className="thanh-duoi fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-5xl">
           {item('/', '🏠', 'Tổng quan')}{item('/ct', '🏗️', 'Công trình')}
           {item(`${ct}/nhap-vt`, '🧱', 'Nhập VT')}{item(`${ct}/chi-phi`, '💵', 'Chi phí')}
-          <button onClick={() => setThem(true)} className="flex flex-1 flex-col items-center justify-center py-1.5 text-xs font-semibold text-slate-500"><span className="text-2xl leading-none">☰</span>Thêm</button>
+          <button onClick={() => setThem(true)} className="flex flex-1 flex-col items-center justify-center py-1.5 text-xs font-semibold"><span className="text-2xl leading-none">☰</span>Thêm</button>
         </div>
       </nav>
       {them && (

@@ -26,7 +26,7 @@ export default function TrangCT() {
   return (
     <div className="space-y-3">
       <div className="-mx-3 overflow-x-auto px-3"><div className="flex w-max gap-2">
-        {TABS.map(([k, t]) => <NavLink key={k} to={`/ct/${ct.id}/${k}`} className={({ isActive }) => `whitespace-nowrap rounded-full px-4 py-2.5 font-semibold ${isActive ? 'bg-brand text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'}`}>{t}</NavLink>)}
+        {TABS.map(([k, t]) => <NavLink key={k} to={`/ct/${ct.id}/${k}`} className={({ isActive }) => `tab-ct ${isActive ? 'active' : ''}`}>{t}</NavLink>)}
       </div></div>
       {ct.luu_tru && <div className="rounded-xl bg-slate-200 p-2 text-center text-sm">📦 Công trình đã lưu trữ (chỉ để tra cứu)</div>}
       {tab === 'thong-tin' && <ThongTin ct={ct} sua={isAdmin} />}

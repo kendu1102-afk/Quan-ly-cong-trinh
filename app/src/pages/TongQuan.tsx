@@ -27,17 +27,15 @@ export default function TongQuan() {
       <TieuDe>Tổng quan</TieuDe>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {tiles.slice(1).map(([bd, t, to]) => (
-          <Link key={t} to={to} className="flex min-h-24 flex-col items-center justify-center rounded-2xl bg-white p-3 text-center font-semibold text-brand shadow-sm ring-1 ring-slate-200 active:bg-slate-100">
-            <span className="text-3xl">{bd}</span>{t}
-          </Link>
+          <Link key={t} to={to} className="tile"><span className="tile-bd">{bd}</span>{t}</Link>
         ))}
       </div>
       {q.dangTai ? <Dang /> : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <The><div className="text-sm text-slate-500">Công trình đang quản lý</div><div className="text-2xl font-bold num">{hd.length}</div></The>
-          <The><div className="text-sm text-slate-500">Tổng giá trị hợp đồng</div><div className="text-xl font-bold num">{fmtTien(tong(hd.map((x) => so(x.gia_tri_hop_dong))))}</div></The>
-          <The><div className="text-sm text-slate-500">Tổng vật tư đã nhập</div><div className="text-xl font-bold num">{fmtTien(tong(hd.map((x) => so(x.vt_tong))))}</div></The>
-          <The><div className="text-sm text-slate-500">Tổng chi phí</div><div className="text-xl font-bold num">{fmtTien(tong(hd.map((x) => so(x.cp_tong))))}</div></The>
+          <div className="kpi"><div className="text-sm text-slate-500">Công trình đang quản lý</div><div className="text-2xl font-bold num text-brand">{hd.length}</div></div>
+          <div className="kpi"><div className="text-sm text-slate-500">Tổng giá trị hợp đồng</div><div className="text-xl font-bold num text-brand">{fmtTien(tong(hd.map((x) => so(x.gia_tri_hop_dong))))}</div></div>
+          <div className="kpi"><div className="text-sm text-slate-500">Tổng vật tư đã nhập</div><div className="text-xl font-bold num text-brand">{fmtTien(tong(hd.map((x) => so(x.vt_tong))))}</div></div>
+          <div className="kpi"><div className="text-sm text-slate-500">Tổng chi phí</div><div className="text-xl font-bold num text-brand">{fmtTien(tong(hd.map((x) => so(x.cp_tong))))}</div></div>
         </div>
       )}
       <The>

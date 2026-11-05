@@ -1,7 +1,8 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
 
 const MAU: Record<string, string> = {
-  chinh: 'bg-brand text-white active:bg-brand-2',
+  chinh: 'bg-gradient-to-b from-brand-2 to-brand text-white shadow-md shadow-brand/30 active:from-brand active:to-brand',
+  vang: 'bg-gradient-to-b from-gold-2 to-gold text-brand shadow-md shadow-gold/40 active:from-gold active:to-gold',
   phu: 'bg-white text-brand border border-brand/30 active:bg-slate-100',
   do: 'bg-bad text-white active:bg-red-800',
   xam: 'bg-slate-200 text-slate-800 active:bg-slate-300',
@@ -16,10 +17,10 @@ export const Truong = ({ nhan, children, className = '', nut = false }: { nhan: 
 }
 export const o = 'w-full min-h-12 rounded-xl border border-slate-300 bg-white px-3 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20'
 export const The = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
-  <div className={`rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 ${className}`}>{children}</div>
+  <div className={`the ${className}`}>{children}</div>
 )
 export const TieuDe = ({ children, phai }: { children: ReactNode; phai?: ReactNode }) => (
-  <div className="mb-3 flex items-center justify-between gap-2"><h2 className="text-xl font-bold text-brand">{children}</h2>{phai}</div>
+  <div className="mb-3 flex items-center justify-between gap-2"><h2 className="tieu-de text-xl font-bold text-brand">{children}</h2>{phai}</div>
 )
 export function Huy({ loai, children }: { loai: 'ok' | 'dat' | 'vuot' | 'xam' | 'xanh'; children: ReactNode }) {
   const c = { ok: 'bg-green-100 text-green-800', dat: 'bg-amber-100 text-amber-800', vuot: 'bg-red-100 text-red-800', xam: 'bg-slate-100 text-slate-700', xanh: 'bg-blue-100 text-blue-800' }[loai]
@@ -29,7 +30,7 @@ export function Modal({ tieuDe, dong, children }: { tieuDe: string; dong: () => 
   useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = '' } }, [])
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" onClick={dong}>
-      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-4 sm:max-w-3xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl border-t-4 border-gold bg-white p-4 sm:max-w-3xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-bold text-brand">{tieuDe}</h3>
           <button onClick={dong} className="h-11 w-11 rounded-full bg-slate-100 text-xl" aria-label="Đóng">✕</button></div>
         {children}
@@ -46,7 +47,7 @@ export function Lua<T extends string | boolean>({ gt, doi, mục }: { gt: T | nu
     <div className="flex gap-2">
       {mục.map((m) => (
         <button type="button" key={String(m.v)} onClick={() => doi(m.v)}
-          className={`min-h-12 flex-1 rounded-xl border px-2 font-semibold ${gt === m.v ? (m.c ?? 'bg-brand text-white border-brand') : 'bg-white text-slate-700 border-slate-300'}`}>
+          className={`min-h-12 flex-1 rounded-xl border px-2 font-semibold ${gt === m.v ? (m.c ?? 'bg-brand text-white border-gold') : 'bg-white text-slate-700 border-slate-300'}`}>
           {m.t}
         </button>
       ))}
