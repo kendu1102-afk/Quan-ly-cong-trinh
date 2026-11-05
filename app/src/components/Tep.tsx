@@ -26,7 +26,7 @@ export function ChonTep({ teps, doi }: { teps: { name: string; blob: Blob }[]; d
         }} />
       </label>
       {teps.map((t, i) => (
-        <div key={i} className="mt-1 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-1 text-sm">
+        <div key={i} className="mt-1 flex items-center justify-between rounded-lg hang-nen px-3 py-1 text-sm">
           <span className="truncate">{t.name} ({Math.round(t.blob.size / 1024)} KB)</span>
           <button type="button" className="h-9 w-9 text-bad" onClick={() => doi(teps.filter((_, j) => j !== i))}>✕</button>
         </div>

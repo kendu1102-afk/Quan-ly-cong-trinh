@@ -77,7 +77,7 @@ export function Gantt({ nam, hang }: { nam: number; hang: { ten: string; tu?: st
           return (
             <div key={h.ten} className="flex items-center border-b py-1.5">
               <div className="w-36 shrink-0 truncate pr-2 text-sm font-medium" title={h.ten}>{h.ten}</div>
-              <div className="relative h-7 flex-1 bg-slate-50">
+              <div className="relative h-7 flex-1 bg-blue-50">
                 {homPc !== null && <div className="absolute top-0 h-full w-px bg-red-400" style={{ left: `${homPc}%` }} />}
                 <div className="absolute top-1 h-5 rounded" style={{ left: `${a}%`, width: `${Math.max(b - a, 0.8)}%`, background: mau(h.trang_thai) }} title={`${h.tu} → ${h.den}`} />
               </div>

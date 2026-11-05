@@ -70,7 +70,7 @@ export default function VatTuMau({ ct }: { ct: string }) {
       {xem && (
         <Modal tieuDe={`Xem trước: ${xem.length} dòng`} dong={() => setXem(null)}>
           <p className="mb-2 text-sm text-slate-600">Vật tư trùng tên sẽ được cập nhật. Dòng lỗi sẽ bị bỏ qua.</p>
-          <div className="max-h-80 space-y-1 overflow-y-auto">{xem.map((x) => <div key={x.dong} className={`rounded-lg p-2 text-sm ${x.loi ? 'bg-red-50 text-bad' : 'bg-slate-50'}`}>#{x.dong} {x.ten} · {x.dvt} · {x.khoi_luong_dt} · {x.don_gia_dt} {x.loi && `— ${x.loi}`}</div>)}</div>
+          <div className="max-h-80 space-y-1 overflow-y-auto">{xem.map((x) => <div key={x.dong} className={`rounded-lg p-2 text-sm ${x.loi ? 'bg-red-50 text-bad' : 'hang-nen'}`}>#{x.dong} {x.ten} · {x.dvt} · {x.khoi_luong_dt} · {x.don_gia_dt} {x.loi && `— ${x.loi}`}</div>)}</div>
           <Nut className="mt-3 w-full" disabled={!xem.some((x) => !x.loi)} onClick={xacNhan}>Nhập {xem.filter((x) => !x.loi).length} dòng hợp lệ</Nut>
         </Modal>
       )}
@@ -158,7 +158,7 @@ function ChonNhieu({ ct, dm, daCo, dong, xong }: { ct: string; dm: DanhMuc[]; da
           </div>
           <div className="max-h-[50vh] space-y-2 overflow-y-auto">
             {hien.map((x) => (
-              <div key={x.id} className={`rounded-xl border p-2 ${sel[x.id] ? 'border-gold bg-amber-50' : 'border-slate-200 bg-slate-50'}`}>
+              <div key={x.id} className={`rounded-xl border p-2 ${sel[x.id] ? 'border-gold bg-amber-50' : 'border-brand/15 hang-nen'}`}>
                 <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="h-6 w-6" checked={!!sel[x.id]} onChange={() => bat(x)} /><span><b>{x.ten}</b> <span className="text-slate-500">({x.dvt})</span></span></label>
                 {sel[x.id] && (
                   <div className="mt-2 grid grid-cols-2 gap-2">

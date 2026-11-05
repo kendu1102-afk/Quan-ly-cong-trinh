@@ -28,7 +28,7 @@ export default defineConfig({
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,webp}'], maximumFileSizeToCacheInBytes: 4 * 1024 * 1024 },
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'], maximumFileSizeToCacheInBytes: 4 * 1024 * 1024 },
     }),
   ],
   build: { chunkSizeWarningLimit: 900 },

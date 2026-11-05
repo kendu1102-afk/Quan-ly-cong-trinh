@@ -58,7 +58,7 @@ export function DsChiPhi({ ct, ds, tai, goc = false, ten = 'chi-phi' }: { ct: st
       {ds.map((r) => {
         const quyen = isAdmin || r.created_by === ho?.id
         return (
-          <div key={r.id} className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
+          <div key={r.id} className="the rounded-2xl !p-3">
             <div className="flex items-start justify-between gap-2"><div><b className="text-brand">{r.ten_chi_phi}</b> <span className="text-slate-500">· {fmtNgay(r.ngay)}</span></div><Huy loai={MAU_CT[r.chung_tu]}>{CHUNG_TU[r.chung_tu]}</Huy></div>
             <div className="text-lg font-bold num">{fmtTien(r.so_tien)} đ</div>
             <div className="text-sm text-slate-600">{r.chi_cho && `Chi cho: ${r.chi_cho}`}{r.nhom && ` · Nhóm: ${r.nhom}`}</div>
@@ -98,7 +98,7 @@ function SuaCP({ r, ct, tep, dong, xong }: { r: ChiPhiRow; ct: string; tep: TepR
         <Truong nut nhan="Chứng từ"><Chung gt={f.ct} doi={(v) => setF({ ...f, ct: v })} /></Truong>
         <Truong nhan="Chi cho ai"><input className={o} value={f.cho} onChange={(e) => setF({ ...f, cho: e.target.value })} /></Truong>
         <Truong nhan="Ghi chú"><input className={o} value={f.gc} onChange={(e) => setF({ ...f, gc: e.target.value })} /></Truong>
-        {tep.map((t) => <div key={t.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><button className="text-blue-800" onClick={() => moTep(t.duong_dan)}>📎 {t.ten_tep || 'Tệp'}</button>
+        {tep.map((t) => <div key={t.id} className="flex items-center justify-between rounded-lg hang-nen px-3 py-2"><button className="text-blue-800" onClick={() => moTep(t.duong_dan)}>📎 {t.ten_tep || 'Tệp'}</button>
           {isAdmin && <button className="text-bad" onClick={async () => { if (!confirm('Xóa tệp này?')) return; await supabase.storage.from('chung-tu').remove([t.duong_dan]); await supabase.from('tep_dinh_kem').delete().eq('id', t.id); xong() }}>Xóa</button>}</div>)}
         <ChonTep teps={moi} doi={setMoi} /><Loi t={loi} />
         <Nut className="w-full" disabled={ban} onClick={luu}>{ban ? 'Đang lưu…' : 'Lưu thay đổi'}</Nut>
@@ -146,7 +146,7 @@ export default function ChiPhi({ ct }: { ct: string }) {
         <datalist id="dl-nhom">{nhoms.map((n) => <option key={n} value={n} />)}</datalist><datalist id="dl-cho">{chos.map((n) => <option key={n} value={n} />)}</datalist>
         <Truong nhan="Ngày"><input type="date" className={o} value={ngay} onChange={(e) => setNgay(e.target.value)} /></Truong>
         {dongs.map((d, i) => (
-          <div key={d.k} className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <div key={d.k} className="khoi space-y-3 rounded-2xl p-3">
             <div className="flex items-center justify-between"><b className="text-brand">Khoản {i + 1}</b>{dongs.length > 1 && <button className="h-10 px-2 text-bad" onClick={() => setDongs((a) => a.filter((x) => x.k !== d.k))}>✕ Bỏ</button>}</div>
             <Truong nhan="Tên chi phí *"><input className={o} value={d.ten} onChange={(e) => sua(d.k, { ten: e.target.value })} /></Truong>
             <div className="grid grid-cols-2 gap-2">
@@ -165,7 +165,7 @@ export default function ChiPhi({ ct }: { ct: string }) {
       </The>
       <TieuDe phai={<Nut mau="phu" className="min-h-10 px-3 text-sm" onClick={() => setXem(!xem)}>{xem ? 'Thu gọn' : '🔍 Lọc'}</Nut>}>Lịch sử chi phí</TieuDe>
       {xem && (
-        <div className="space-y-2 rounded-2xl bg-white p-3 ring-1 ring-slate-200">
+        <div className="the rounded-2xl !p-3 space-y-2">
           <div className="flex flex-wrap gap-2">
             <Nut mau="xam" className="min-h-10 px-3 text-sm" onClick={() => setLoc({ ...loc, tu: homNay(), den: homNay() })}>Hôm nay</Nut>
             <Nut mau="xam" className="min-h-10 px-3 text-sm" onClick={() => setLoc({ ...loc, tu: dauTuan(), den: homNay() })}>Tuần này</Nut>

@@ -65,7 +65,7 @@ export default function DanhMucVT() {
       {xem && (
         <Modal tieuDe={`Xem trước: ${xem.length} dòng`} dong={() => setXem(null)}>
           <p className="mb-2 text-sm text-slate-600">Vật tư trùng tên sẽ được cập nhật. Dòng lỗi sẽ bị bỏ qua.</p>
-          <div className="max-h-80 space-y-1 overflow-y-auto">{xem.map((x) => <div key={x.dong} className={`rounded-lg p-2 text-sm ${x.loi ? 'bg-red-50 text-bad' : 'bg-slate-50'}`}>#{x.dong} {x.ten} · {x.dvt} · {x.don_gia} {x.loi && `— ${x.loi}`}</div>)}</div>
+          <div className="max-h-80 space-y-1 overflow-y-auto">{xem.map((x) => <div key={x.dong} className={`rounded-lg p-2 text-sm ${x.loi ? 'bg-red-50 text-bad' : 'hang-nen'}`}>#{x.dong} {x.ten} · {x.dvt} · {x.don_gia} {x.loi && `— ${x.loi}`}</div>)}</div>
           <Nut className="mt-3 w-full" disabled={!xem.some((x) => !x.loi)} onClick={xacNhan}>Nhập {xem.filter((x) => !x.loi).length} dòng hợp lệ</Nut>
         </Modal>
       )}

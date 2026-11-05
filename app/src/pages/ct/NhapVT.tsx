@@ -61,7 +61,7 @@ export default function NhapVT({ ct }: { ct: string }) {
           {dongs.map((d, i) => {
             const m = ds.find((x) => x.id === d.vat_tu_id)
             return (
-              <div key={d.k} className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <div key={d.k} className="khoi space-y-3 rounded-2xl p-3">
                 <div className="flex items-center justify-between"><b className="text-brand">Dòng {i + 1}</b>
                   {dongs.length > 1 && <button className="h-10 px-2 text-bad" onClick={() => setDongs((a) => a.filter((x) => x.k !== d.k))}>✕ Bỏ dòng</button>}</div>
                 <Truong nhan="Tên vật tư (gõ để tìm)">

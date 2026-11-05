@@ -30,7 +30,7 @@ export default function TrangCT() {
   return (
     <div className="space-y-3">
       <div className="the the-vang flex items-center gap-3 !py-2">
-        <div className="min-w-0 flex-1"><div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Công trình</div><div className="line-clamp-2 font-extrabold leading-snug text-brand">{ct.ten}</div></div>
+        <div className="min-w-0 flex-1"><div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Công trình</div><div className="line-clamp-3 font-extrabold leading-snug text-brand">{ct.ten}</div></div>
         <Nut mau="phu" className="min-h-10 shrink-0 px-3 text-sm" onClick={() => setDoi(true)}>🔄 Đổi công trình</Nut>
       </div>
       <div className="-mx-3 overflow-x-auto px-3"><div className="flex w-max gap-2">

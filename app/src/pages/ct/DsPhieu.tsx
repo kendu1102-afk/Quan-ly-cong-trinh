@@ -60,7 +60,7 @@ export default function DsPhieuVT({ ct, vatTu, loc, goc = false, tieuDeXuat = 'p
       {ds.map((p) => {
         const quyen = isAdmin || p.created_by === ho?.id
         return (
-          <div key={p.id} className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
+          <div key={p.id} className="the rounded-2xl !p-3">
             <div className="flex items-start justify-between gap-2">
               <div><b className="text-brand">{p.vat_tu_mau.ten}</b> <span className="text-slate-500">· {fmtNgay(p.ngay)}</span></div>
               <Huy loai={p.co_hoa_don ? 'ok' : 'dat'}>{p.co_hoa_don ? 'Có hóa đơn' : 'Không hóa đơn'}</Huy>
@@ -107,7 +107,7 @@ function SuaPhieuVT({ p, ct, vatTu, tep, dong, xong }: { p: PhieuVT; ct: string;
         <div className="text-lg">Thành tiền: <b className="num text-brand">{fmtTien(thanhTien(kl || 0, dg || 0))}</b> đ</div>
         <Truong nut nhan="Hóa đơn"><Lua gt={f.hd} doi={(v) => setF({ ...f, hd: v })} mục={[{ v: true, t: 'Có hóa đơn', c: 'bg-ok text-white border-ok' }, { v: false, t: 'Không có hóa đơn', c: 'bg-warn text-white border-warn' }]} /></Truong>
         <Truong nhan="Ghi chú"><input className={o} value={f.gc} onChange={(e) => setF({ ...f, gc: e.target.value })} /></Truong>
-        {tep.map((t) => <div key={t.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><button className="text-blue-800" onClick={() => moTep(t.duong_dan)}>📎 {t.ten_tep || 'Tệp'}</button>
+        {tep.map((t) => <div key={t.id} className="flex items-center justify-between rounded-lg hang-nen px-3 py-2"><button className="text-blue-800" onClick={() => moTep(t.duong_dan)}>📎 {t.ten_tep || 'Tệp'}</button>
           {isAdmin && <button className="text-bad" onClick={async () => { if (!confirm('Xóa tệp này?')) return; await supabase.storage.from('chung-tu').remove([t.duong_dan]); await supabase.from('tep_dinh_kem').delete().eq('id', t.id); xong() }}>Xóa</button>}</div>)}
         <ChonTep teps={moi} doi={setMoi} />
         <Loi t={loi} />
@@ -120,7 +120,7 @@ function SuaPhieuVT({ p, ct, vatTu, tep, dong, xong }: { p: PhieuVT; ct: string;
 export function BoLoc({ loc, doi, vatTu }: { loc: Loc; doi: (l: Loc) => void; vatTu: VatTuMau[] }) {
   const t = homNay()
   return (
-    <div className="space-y-2 rounded-2xl bg-white p-3 ring-1 ring-slate-200">
+    <div className="the rounded-2xl !p-3 space-y-2">
       <div className="flex flex-wrap gap-2">
         <Nut mau="xam" className="min-h-10 px-3 text-sm" onClick={() => doi({ ...loc, tu: t, den: t })}>Hôm nay</Nut>
         <Nut mau="xam" className="min-h-10 px-3 text-sm" onClick={() => doi({ ...loc, tu: dauTuan(), den: t })}>Tuần này</Nut>

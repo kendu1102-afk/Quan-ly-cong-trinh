@@ -7,24 +7,26 @@
   --color-ok: #15803d;
   --color-warn: #b45309;
   --color-bad: #b91c1c;
-  --font-sans: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Be Vietnam Pro", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 html, body, #root { min-height: 100%; }
 body {
-  background: linear-gradient(180deg, #f6f9ff 0%, #e6edf9 100%) fixed;
-  color: #14213d; font-size: 17px; -webkit-tap-highlight-color: transparent;
+  font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: #0f1d3d; letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(165deg, #c3d5f1 0%, #b3c9ec 42%, #d3e0f5 100%) fixed;
 }
+h1, h2, h3, h4 { letter-spacing: -0.015em; }
 /* Ảnh logo công ty làm nền mờ toàn phần mềm */
 body::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: url(/nen.webp) center 55% / min(980px, 150vw) auto no-repeat; opacity: .12;
+  background: url(/nen.webp) center 55% / min(980px, 150vw) auto no-repeat; opacity: .13; mix-blend-mode: multiply;
 }
-input, select, textarea { font-size: 17px; }
+input, select, textarea, button { font-family: inherit; font-size: 16px; }
 .num { font-variant-numeric: tabular-nums; }
 
 /* Thẻ nội dung: kính mờ trắng, viền xanh nhạt */
-.the { background: rgba(255,255,255,.92); backdrop-filter: blur(6px); border-radius: 1rem; padding: 1rem;
-  box-shadow: 0 6px 20px -8px rgba(10,42,102,.25); border: 1px solid rgba(10,42,102,.08); }
+.the { background: linear-gradient(160deg, rgba(243,248,255,.93) 0%, rgba(205,222,250,.95) 100%); backdrop-filter: blur(6px); border-radius: 1rem; padding: 1rem;
+  box-shadow: 0 8px 22px -10px rgba(10,42,102,.38); border: 1px solid rgba(10,42,102,.16); }
 .the-vang { border-top: 3px solid var(--color-gold); }
 
 /* Ô chức năng ở màn hình chính: xanh navy, viền vàng; bấm vào chuyển sang vàng */
@@ -42,8 +44,8 @@ input, select, textarea { font-size: 17px; }
 .tile:active .tile-bd, .tile:hover .tile-bd { background: rgba(10,42,102,.12); box-shadow: inset 0 0 0 1.5px rgba(10,42,102,.5); }
 
 /* Số liệu nổi bật */
-.kpi { border-radius: 1rem; padding: .9rem 1rem; background: linear-gradient(160deg, #fff 0%, #eef3fd 100%);
-  border: 1px solid rgba(10,42,102,.1); border-left: 4px solid var(--color-gold); box-shadow: 0 6px 16px -10px rgba(10,42,102,.4); }
+.kpi { border-radius: 1rem; padding: .9rem 1rem; background: linear-gradient(160deg, #f1f6ff 0%, #c4d9fa 100%);
+  border: 1px solid rgba(10,42,102,.14); border-left: 4px solid var(--color-gold); box-shadow: 0 8px 18px -10px rgba(10,42,102,.5); }
 
 .tieu-de { position: relative; padding-bottom: .35rem; }
 .tieu-de::after { content: ""; position: absolute; left: 0; bottom: 0; width: 3.2rem; height: 3px; border-radius: 3px;
@@ -68,8 +70,8 @@ input, select, textarea { font-size: 17px; }
 .chon-ct { background: rgba(255,255,255,.12); color: #fff; border: 1.5px solid rgba(245,197,66,.8); backdrop-filter: blur(4px); }
 .chon-ct option { color: #0a2a66; background: #fff; }
 
-.tab-ct { white-space: nowrap; border-radius: 9999px; padding: .6rem 1.1rem; font-weight: 600; background: rgba(255,255,255,.95);
-  color: #0a2a66; border: 1px solid rgba(10,42,102,.18); }
+.tab-ct { white-space: nowrap; border-radius: 9999px; padding: .6rem 1.1rem; font-weight: 600; background: linear-gradient(180deg, #ffffff, #dbe8ff);
+  color: #0a2a66; border: 1px solid rgba(10,42,102,.22); box-shadow: 0 2px 6px -2px rgba(10,42,102,.3); }
 .tab-ct.active { background: linear-gradient(180deg, #1b4aa3, #0a2a66); color: #fff; border-color: var(--color-gold); box-shadow: 0 4px 12px -4px rgba(10,42,102,.6); }
 
 /* Ba ô chức năng lớn ở trang chính */
@@ -78,3 +80,9 @@ input, select, textarea { font-size: 17px; }
 @media (min-width: 640px) { .tile-lon { min-height: 11rem; font-size: 1.6rem; } }
 .thanh-tien { height: .6rem; border-radius: 9999px; background: rgba(10,42,102,.12); overflow: hidden; }
 .thanh-tien > i { display: block; height: 100%; border-radius: 9999px; }
+
+/* Nền bên trong: khối nhập liệu kem vàng nhạt, hàng danh sách trắng mờ, cửa sổ nền xanh băng */
+.khoi { background: linear-gradient(160deg, #fff9e6 0%, #ffefc2 100%); border: 1px solid rgba(212,160,23,.55); box-shadow: 0 4px 12px -6px rgba(160,110,0,.4); }
+.hang-nen { background: rgba(255,255,255,.78); border: 1px solid rgba(10,42,102,.10); }
+.modal-nen { background: linear-gradient(180deg, #eef4ff 0%, #d9e6fa 100%); }
+.modal-dau { background: linear-gradient(135deg, #061a45 0%, #0a2a66 55%, #1b4aa3 100%); }

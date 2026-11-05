@@ -3,7 +3,7 @@ import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from '
 const MAU: Record<string, string> = {
   chinh: 'bg-gradient-to-b from-brand-2 to-brand text-white shadow-md shadow-brand/30 active:from-brand active:to-brand',
   vang: 'bg-gradient-to-b from-gold-2 to-gold text-brand shadow-md shadow-gold/40 active:from-gold active:to-gold',
-  phu: 'bg-white text-brand border border-brand/30 active:bg-slate-100',
+  phu: 'bg-gradient-to-b from-white to-blue-100 text-brand border border-brand/30 shadow-sm active:from-blue-100 active:to-blue-200',
   do: 'bg-bad text-white active:bg-red-800',
   xam: 'bg-slate-200 text-slate-800 active:bg-slate-300',
 }
@@ -13,9 +13,9 @@ export function Nut({ mau = 'chinh', className = '', ...p }: ButtonHTMLAttribute
 // nut=true: nhóm nút bấm (không bọc bằng <label> để bấm vào chữ không kích hoạt nhầm nút đầu tiên)
 export const Truong = ({ nhan, children, className = '', nut = false }: { nhan: string; children: ReactNode; className?: string; nut?: boolean }) => {
   const Tag = nut ? 'div' : 'label'
-  return <Tag className={`block ${className}`}><span className="mb-1 block text-sm font-medium text-slate-600">{nhan}</span>{children}</Tag>
+  return <Tag className={`block ${className}`}><span className="mb-1 block text-sm font-semibold text-brand-2">{nhan}</span>{children}</Tag>
 }
-export const o = 'w-full min-h-12 rounded-xl border border-slate-300 bg-white px-3 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20'
+export const o = 'w-full min-h-12 rounded-xl border border-brand/25 bg-white px-3 shadow-inner shadow-brand/5 outline-none focus:border-gold focus:ring-2 focus:ring-gold/40'
 export const The = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
   <div className={`the ${className}`}>{children}</div>
 )
@@ -30,16 +30,16 @@ export function Modal({ tieuDe, dong, children }: { tieuDe: string; dong: () => 
   useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = '' } }, [])
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" onClick={dong}>
-      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl border-t-4 border-gold bg-white p-4 sm:max-w-3xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-bold text-brand">{tieuDe}</h3>
-          <button onClick={dong} className="h-11 w-11 rounded-full bg-slate-100 text-xl" aria-label="Đóng">✕</button></div>
+      <div className="modal-nen max-h-[92vh] w-full overflow-y-auto rounded-t-3xl border-t-4 border-gold p-4 sm:max-w-3xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-dau -mx-4 -mt-4 mb-4 flex items-center justify-between gap-2 px-4 py-3"><h3 className="text-lg font-bold text-white">{tieuDe}</h3>
+          <button onClick={dong} className="h-11 w-11 shrink-0 rounded-full bg-white/15 text-xl text-white active:bg-white/30" aria-label="Đóng">✕</button></div>
         {children}
       </div>
     </div>
   )
 }
 export const Dang = ({ t = 'Đang tải…' }: { t?: string }) => <div className="p-6 text-center text-slate-500">{t}</div>
-export const Rong = ({ t }: { t: string }) => <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-slate-500">{t}</div>
+export const Rong = ({ t }: { t: string }) => <div className="rounded-2xl border border-dashed border-brand/30 bg-white/50 p-6 text-center text-slate-600">{t}</div>
 export const Loi = ({ t }: { t: string }) => t ? <div className="mb-3 rounded-xl bg-red-50 p-3 text-bad">{t}</div> : null
 
 export function Lua<T extends string | boolean>({ gt, doi, mục }: { gt: T | null; doi: (v: T) => void; mục: { v: T; t: string; c?: string }[] }) {
@@ -47,7 +47,7 @@ export function Lua<T extends string | boolean>({ gt, doi, mục }: { gt: T | nu
     <div className="flex gap-2">
       {mục.map((m) => (
         <button type="button" key={String(m.v)} onClick={() => doi(m.v)}
-          className={`min-h-12 flex-1 rounded-xl border px-2 font-semibold ${gt === m.v ? (m.c ?? 'bg-brand text-white border-gold') : 'bg-white text-slate-700 border-slate-300'}`}>
+          className={`min-h-12 flex-1 rounded-xl border px-1.5 text-sm font-semibold leading-tight ${gt === m.v ? (m.c ?? 'bg-brand text-white border-gold') : 'bg-gradient-to-b from-white to-blue-100 text-slate-700 border-brand/25'}`}>
           {m.t}
         </button>
       ))}
@@ -92,7 +92,7 @@ export function ChonTim<T extends { id: string }>({ ds, gt, doi, nhan, hienThi, 
           <input autoFocus className={`${o} mb-3`} placeholder="Gõ để tìm…" value={q} onChange={(e) => setQ(e.target.value)} />
           <div className="space-y-1">
             {loc.map((x) => (
-              <button type="button" key={x.id} className={`block min-h-12 w-full rounded-xl px-3 py-2 text-left ${x.id === gt ? 'bg-brand/10 font-bold' : 'bg-slate-50'}`}
+              <button type="button" key={x.id} className={`block min-h-12 w-full rounded-xl px-3 py-2 text-left ${x.id === gt ? 'bg-brand/10 font-bold' : 'hang-nen'}`}
                 onClick={() => { doi(x.id); setMo(false) }}>{hienThi ? hienThi(x) : nhan(x)}</button>
             ))}
             {!loc.length && <Rong t="Không tìm thấy" />}

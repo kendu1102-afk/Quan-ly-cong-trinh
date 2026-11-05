@@ -16,7 +16,7 @@ export default function ChonCongTrinh({ tieuDe, dong, chon }: { tieuDe: string; 
         {dang.length > 5 && <input autoFocus className={o} placeholder="🔍 Gõ để tìm công trình…" value={q} onChange={(e) => setQ(e.target.value)} />}
         {!dang.length && <Rong t="Chưa có công trình nào đang quản lý, hoặc bạn chưa được cấp quyền." />}
         {loc.map((c) => (
-          <button key={c.id} type="button" onClick={() => chon(c.id)} className="block w-full rounded-2xl border border-brand/15 bg-white p-3 text-left shadow-sm active:bg-amber-50">
+          <button key={c.id} type="button" onClick={() => chon(c.id)} className="block w-full the rounded-2xl text-left !p-3 active:bg-amber-50">
             <div className="flex items-start justify-between gap-2"><b className="text-brand">{c.ten}</b><Huy loai={c.trang_thai === 'hoan_thanh' ? 'ok' : c.trang_thai === 'tam_dung' ? 'xam' : 'xanh'}>{TRANG_THAI[c.trang_thai]}</Huy></div>
             <div className="text-sm text-slate-600">{c.chu_dau_tu}{c.dia_diem ? ' · ' + c.dia_diem : ''}</div>
             <div className="text-sm num text-slate-500">Hợp đồng {fmtTien(c.gia_tri_hop_dong)} đ · Năm {c.nam}</div>

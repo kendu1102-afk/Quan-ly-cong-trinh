@@ -96,7 +96,7 @@ function FormQuyen({ u, hien, dong, xong }: { u: HoSo; hien: string[]; dong: () 
     <Modal tieuDe={`Công trình cho ${u.ho_ten || u.email}`} dong={dong}>
       <div className="space-y-2">
         {!ds.length && <Rong t="Chưa có công trình" />}
-        {ds.map((c) => <label key={c.id} className="flex min-h-12 items-center gap-3 rounded-xl bg-slate-50 px-3"><input type="checkbox" className="h-6 w-6" checked={chon.has(c.id)} onChange={() => setChon((s) => { const n = new Set(s); n.has(c.id) ? n.delete(c.id) : n.add(c.id); return n })} /><span>{c.ten} <span className="text-slate-500">({c.nam})</span></span></label>)}
+        {ds.map((c) => <label key={c.id} className="flex min-h-12 items-center gap-3 rounded-xl hang-nen px-3"><input type="checkbox" className="h-6 w-6" checked={chon.has(c.id)} onChange={() => setChon((s) => { const n = new Set(s); n.has(c.id) ? n.delete(c.id) : n.add(c.id); return n })} /><span>{c.ten} <span className="text-slate-500">({c.nam})</span></span></label>)}
         <Nut className="w-full" disabled={ban} onClick={luu}>Lưu phân quyền</Nut>
       </div>
     </Modal>
@@ -161,7 +161,7 @@ function SaoLuu() {
         {!q.data?.length && !q.loi && <Rong t="Chưa có bản sao lưu tự động nào" />}
         <div className="space-y-2">
           {q.data?.map((b) => (
-            <div key={b.id} className="rounded-xl bg-slate-50 p-2 text-sm">
+            <div key={b.id} className="rounded-xl hang-nen p-2 text-sm">
               <div className="font-semibold">{fmtGio(b.thoi_gian)} <span className="font-normal text-slate-500">· {kb(b.kich_thuoc)}</span></div>
               <div className="text-slate-600">{b.tom_tat.cong_trinh} công trình · {b.tom_tat.phieu_nhap_vt} phiếu vật tư · {b.tom_tat.chi_phi} khoản chi</div>
               <div className="mt-1 flex gap-2">
@@ -213,7 +213,7 @@ function NhatKy({ dong }: { dong: () => void }) {
       <select className={`${o} mb-3`} value={bang} onChange={(e) => setBang(e.target.value)}><option value="">Tất cả</option>{['cong_trinh', 'vat_tu_mau', 'phieu_nhap_vt', 'chi_phi', 'phan_quyen', 'profiles', 'tep_dinh_kem'].map((b) => <option key={b}>{b}</option>)}</select>
       {q.dangTai ? <Dang /> : <div className="space-y-1">{q.data?.map((n) => {
         const s = (n.sau ?? n.truoc) as Record<string, unknown> | null
-        return <div key={n.id} className="rounded-lg bg-slate-50 p-2 text-sm"><b>{TEN[n.hanh_dong]}</b> · {n.bang} · {nguoi[n.user_id ?? ''] ?? 'hệ thống'} · <span className="text-slate-500">{fmtGio(n.thoi_gian)}</span>
+        return <div key={n.id} className="rounded-lg hang-nen p-2 text-sm"><b>{TEN[n.hanh_dong]}</b> · {n.bang} · {nguoi[n.user_id ?? ''] ?? 'hệ thống'} · <span className="text-slate-500">{fmtGio(n.thoi_gian)}</span>
           {s && <div className="truncate text-slate-600">{String(s.ten ?? s.ten_chi_phi ?? s.ghi_chu ?? s.so_tien ?? s.khoi_luong ?? '')}</div>}</div>
       })}</div>}
     </Modal>
