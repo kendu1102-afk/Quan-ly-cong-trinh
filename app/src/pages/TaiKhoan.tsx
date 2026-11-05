@@ -8,8 +8,12 @@ import { Dang, Huy, Loi, Modal, Nut, Rong, The, TieuDe, Truong, o } from '../com
 import { thongBao } from '../lib/thongbao'
 import { taiVe } from '../lib/excel'
 
+// Địa chỉ (slug) của Edge Function trên Supabase. Trình soạn thảo web của Supabase có thể tự đặt slug khác tên hàm
+// (ví dụ "hyper-action"), nên cho phép đổi bằng biến VITE_HAM_QUAN_TRI.
+const HAM_QUAN_TRI = (import.meta.env.VITE_HAM_QUAN_TRI as string | undefined) || 'hyper-action'
+
 async function goiQuanTri(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('quan-tri-tai-khoan', { body })
+  const { data, error } = await supabase.functions.invoke(HAM_QUAN_TRI, { body })
   if (error) {
     let m = error.message
     try { const j = await (error as unknown as { context: Response }).context.json(); if (j?.loi) m = j.loi } catch { /* giữ nguyên */ }

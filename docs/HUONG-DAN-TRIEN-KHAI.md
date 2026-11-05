@@ -20,6 +20,7 @@ Người đầu tiên được tạo tự động thành **Admin**. (Đăng nh�
 
 ## Bước 5. Cài hàm tạo tài khoản kế toán
 Edge Functions → **Deploy a new function → Via Editor** → tên `quan-tri-tai-khoan` → dán nội dung `supabase/functions/quan-tri-tai-khoan/index.ts` → Deploy.
+LƯU Ý: nếu sau khi Deploy, cột URL của hàm hiện đuôi khác (ví dụ `.../functions/v1/hyper-action`), hãy đặt thêm biến `VITE_HAM_QUAN_TRI` = đuôi đó (ví dụ `hyper-action`) ở Bước 7.
 (Hàm tự dùng khóa bí mật của Supabase ở phía máy chủ; bạn không phải dán khóa nào.)
 
 ## Bước 6. Lấy 2 giá trị công khai
