@@ -15,8 +15,14 @@ import VatTuMau from './ct/VatTuMau'
 import THVT from './ct/THVT'
 import THCP from './ct/THCP'
 import TaiChinh from './ct/TaiChinh'
+import KLHopDong from './ct/KLHopDong'
+import KLHoanThanh from './ct/KLHoanThanh'
+import ThanhToan from './ct/ThanhToan'
+import TienDoThucHien from '../components/TienDo'
+import { tongHopHangMuc, useHangMuc } from './ct/hangmuc'
+import { so } from '../lib/tinh'
 
-const TABS = [['thong-tin', 'Thông tin'], ['vat-tu-mau', 'Vật tư theo dự toán'], ['nhap-vt', 'Nhập vật tư'], ['chi-phi', 'Chi phí'], ['th-vt', 'TH vật tư'], ['th-cp', 'TH chi phí'], ['tai-chinh', 'Tài chính']] as const
+const TABS = [['thong-tin', 'Thông tin'], ['kl-hop-dong', 'Khối lượng hợp đồng'], ['hoan-thanh', 'Khối lượng hoàn thành'], ['vat-tu-mau', 'Vật tư theo dự toán'], ['nhap-vt', 'Nhập vật tư'], ['chi-phi', 'Chi phí'], ['th-vt', 'TH vật tư'], ['th-cp', 'TH chi phí'], ['tai-chinh', 'Tài chính']] as const
 
 export default function TrangCT() {
   const { id, tab } = useParams()
@@ -40,6 +46,8 @@ export default function TrangCT() {
       {ct.luu_tru && <div className="rounded-xl bg-slate-200 p-2 text-center text-sm">📦 Công trình đã lưu trữ (chỉ để tra cứu)</div>}
       {doi && <ChonCongTrinh tieuDe="Chuyển sang công trình khác" dong={() => setDoi(false)} chon={(nid) => { chon(nid); setDoi(false); nav(`/ct/${nid}/${tab ?? 'thong-tin'}`) }} />}
       {tab === 'thong-tin' && <ThongTin ct={ct} sua={isAdmin} />}
+      {tab === 'kl-hop-dong' && <KLHopDong cong={ct} />}
+      {tab === 'hoan-thanh' && <KLHoanThanh cong={ct} />}
       {tab === 'vat-tu-mau' && <VatTuMau ct={ct.id} />}
       {tab === 'nhap-vt' && <NhapVT ct={ct.id} />}
       {tab === 'chi-phi' && <ChiPhi ct={ct.id} />}
@@ -67,7 +75,21 @@ function ThongTin({ ct, sua }: { ct: NonNullable<ReturnType<typeof useCT>['hienT
         {dong('Ngày ký biên bản bàn giao đưa vào sử dụng', fmtNgay(ct.ngay_ky_bb_ban_giao))}
         {dong('Năm thực hiện', String(ct.nam))}{dong('Ghi chú', ct.ghi_chu)}
       </The>
+      <TienDoKhoi ct={ct} />
+      <ThanhToan cong={ct} />
       {mo && <FormCT ct={ct} dong={() => setMo(false)} xong={() => { setMo(false); tai() }} />}
+    </div>
+  )
+}
+
+function TienDoKhoi({ ct }: { ct: NonNullable<ReturnType<typeof useCT>['hienTai']> }) {
+  const q = useHangMuc(ct.id)
+  if (q.loi && !q.cu) return null
+  const all = q.data ?? []
+  const tk = tongHopHangMuc(all, so(ct.gia_tri_hop_dong))
+  return (
+    <div className="mt-3">
+      <TienDoThucHien gtThucHien={tk.gtThucHien} mau={tk.mau} tyLe={tk.tyLe} phu={all.length ? `${tk.soHoanThanh}/${all.length} hạng mục đã hoàn thành 100%` : 'Chưa có khối lượng hợp đồng. Admin nhập ở thẻ “Khối lượng hợp đồng”.'} />
     </div>
   )
 }

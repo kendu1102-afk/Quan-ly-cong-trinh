@@ -9,5 +9,5 @@ su postgres -c "$PGBIN/pg_ctl -D $DATA -o '-p 54399 -k /tmp' -l $DATA/log -w sta
 trap "su postgres -c '$PGBIN/pg_ctl -D $DATA -m immediate stop >/dev/null'; rm -rf $DATA" EXIT
 P="psql -h /tmp -p 54399 -U postgres -v ON_ERROR_STOP=1 -q"
 $P -c "create database t" ; P="$P -d t"
-$P -f "$D/shim.sql" && $P -f "$D/../migrations/01_schema.sql" && $P -f "$D/../migrations/03_danh_muc_vat_tu.sql" && $P -f "$D/../migrations/04_thong_bao_day_va_sao_luu_tu_dong.sql" && $P -f "$D/../migrations/05_thong_tin_hop_dong.sql"
+$P -f "$D/shim.sql" && $P -f "$D/../migrations/01_schema.sql" && $P -f "$D/../migrations/03_danh_muc_vat_tu.sql" && $P -f "$D/../migrations/04_thong_bao_day_va_sao_luu_tu_dong.sql" && $P -f "$D/../migrations/05_thong_tin_hop_dong.sql" && $P -f "$D/../migrations/06_khoi_luong_hop_dong_thanh_toan.sql"
 $P -t -f "$D/test.sql" 2>&1 | grep -E "NOTICE|ERROR|CONTEXT|TẤT CẢ" | sed -E "s/^psql:[^ ]+ //"

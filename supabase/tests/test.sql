@@ -295,4 +295,76 @@ select phuc_hoi_sao_luu((select jsonb_set(j,'{cong_trinh}',(select jsonb_agg(e -
 select t.eq((select count(*) from cong_trinh),2::bigint,'phục hồi tệp sao lưu cũ không lỗi, không mất công trình');
 select t.eq((select so_hop_dong is not null and tien_do is not null from cong_trinh where ten='Cầu A'),true,'tệp cũ: cột chữ mới không bị null');
 
+-- ===== 14. Khối lượng hợp đồng, khối lượng hoàn thành, thanh toán =====
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into hang_muc_hop_dong (id,cong_trinh_id,stt,thu_tu,ten,dvt,khoi_luong_hd,don_gia_hd) values
+ ('33333333-0000-0000-0000-000000000001','11111111-0000-0000-0000-000000000001','1',1,'Đào đất','m3',1000,50000),
+ ('33333333-0000-0000-0000-000000000002','11111111-0000-0000-0000-000000000001','2',2,'Bê tông','m3',200,2000000),
+ ('33333333-0000-0000-0000-000000000003','11111111-0000-0000-0000-000000000002','1',1,'Rải thảm','m2',500,100000);
+select t.eq((select thanh_tien_hd from hang_muc_hop_dong where ten='Bê tông')::numeric,400000000::numeric,'hạng mục: thành tiền hợp đồng = KL × đơn giá');
+select t.eq((select gia_tri_hang_muc from v_tien_do_thuc_hien where cong_trinh_id='11111111-0000-0000-0000-000000000001')::numeric,450000000::numeric,'tổng giá trị các hạng mục hợp đồng');
+select t.eq((select gia_tri_thuc_hien from v_tien_do_thuc_hien where cong_trinh_id='11111111-0000-0000-0000-000000000001')::numeric,0::numeric,'chưa hoàn thành gì → giá trị thực hiện 0');
+select t.fails($q$insert into hang_muc_hop_dong (cong_trinh_id,stt,ten,dvt,khoi_luong_hd) values ('11111111-0000-0000-0000-000000000001','1','Trùng STT','m3',1)$q$,'trùng STT trong cùng công trình');
+select t.fails($q$insert into hang_muc_hop_dong (cong_trinh_id,stt,ten,dvt,khoi_luong_hd) values ('11111111-0000-0000-0000-000000000001','9','Khối lượng 0','m3',0)$q$,'khối lượng hợp đồng bằng 0');
+-- kế toán 1 (chỉ công trình 1)
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+select t.eq((select count(*) from hang_muc_hop_dong),2::bigint,'KT1 chỉ thấy hạng mục của công trình được cấp');
+select t.fails($q$insert into hang_muc_hop_dong (cong_trinh_id,stt,ten,dvt,khoi_luong_hd) values ('11111111-0000-0000-0000-000000000001','5','Lén','m3',1)$q$,'KT thêm hạng mục hợp đồng');
+select t.eq(t.cnt($q$update hang_muc_hop_dong set khoi_luong_hd=1$q$),0::bigint,'KT sửa khối lượng hợp đồng (0 dòng)');
+select t.eq(t.cnt($q$update hang_muc_hop_dong set khoi_luong_hoan_thanh=1$q$),0::bigint,'KT sửa trực tiếp khối lượng hoàn thành trên bảng (0 dòng, phải đi qua hàm)');
+select t.eq(t.cnt('delete from hang_muc_hop_dong'),0::bigint,'KT xóa hạng mục (0 dòng)');
+select cap_nhat_khoi_luong_hoan_thanh('33333333-0000-0000-0000-000000000001', 400);
+select t.eq((select khoi_luong_hoan_thanh from hang_muc_hop_dong where ten='Đào đất')::numeric,400::numeric,'KT cập nhật khối lượng hoàn thành 400/1000 qua hàm');
+select t.eq((select version from hang_muc_hop_dong where ten='Đào đất'),2,'số phiên bản tăng');
+select cap_nhat_khoi_luong_hoan_thanh('33333333-0000-0000-0000-000000000002', 200);   -- 100%
+select t.eq((select gia_tri_thuc_hien from v_tien_do_thuc_hien where cong_trinh_id='11111111-0000-0000-0000-000000000001')::numeric,(400*50000+200*2000000)::numeric,'giá trị đã thực hiện = Σ KL hoàn thành × đơn giá');
+select t.eq((select so_hoan_thanh from v_tien_do_thuc_hien where cong_trinh_id='11111111-0000-0000-0000-000000000001'),1::bigint,'đếm hạng mục đã hoàn thành 100%');
+select t.fails($q$select cap_nhat_khoi_luong_hoan_thanh('33333333-0000-0000-0000-000000000001', 1000.001)$q$,'hoàn thành vượt khối lượng hợp đồng');
+select t.fails($q$select cap_nhat_khoi_luong_hoan_thanh('33333333-0000-0000-0000-000000000001', -1)$q$,'khối lượng hoàn thành âm');
+select t.fails($q$select cap_nhat_khoi_luong_hoan_thanh('33333333-0000-0000-0000-000000000003', 10)$q$,'KT cập nhật hạng mục của công trình KHÔNG được cấp');
+select t.fails($q$select cap_nhat_khoi_luong_hoan_thanh('33333333-0000-0000-0000-000000000001', 500, 1)$q$,'chống ghi đè: dùng số phiên bản cũ');
+select cap_nhat_khoi_luong_hoan_thanh('33333333-0000-0000-0000-000000000001', 500, 2);
+select t.eq((select khoi_luong_hoan_thanh from hang_muc_hop_dong where ten='Đào đất')::numeric,500::numeric,'cập nhật đúng số phiên bản hiện tại thì thành công');
+select t.as_anon(); select t.fails($q$select cap_nhat_khoi_luong_hoan_thanh('33333333-0000-0000-0000-000000000001', 1)$q$,'người chưa đăng nhập cập nhật khối lượng');
+select t.as_super();
+select t.eq((select count(*) from nhat_ky where bang='hang_muc_hop_dong' and hanh_dong='SUA' and user_id='00000000-0000-0000-0000-0000000000b1'),3::bigint,'nhật ký ghi đúng người cập nhật khối lượng hoàn thành');
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+select t.fails($q$update hang_muc_hop_dong set khoi_luong_hd=300 where ten='Đào đất'$q$,'Admin hạ khối lượng hợp đồng thấp hơn khối lượng đã hoàn thành');
+select t.eq(t.cnt($q$update hang_muc_hop_dong set khoi_luong_hd=1200 where ten='Đào đất'$q$),1::bigint,'Admin tăng khối lượng hợp đồng (phát sinh)');
+select t.eq((select count(*) from hang_muc_hop_dong where ten='Đào đất' and khoi_luong_hoan_thanh=500),1::bigint,'tăng khối lượng hợp đồng không làm mất khối lượng đã hoàn thành');
+-- thanh toán
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into thanh_toan (cong_trinh_id,lan,ngay,gia_tri) values ('11111111-0000-0000-0000-000000000001',1,'2026-03-01',300000000),('11111111-0000-0000-0000-000000000001',2,'2026-06-01',200000000);
+select t.eq((select tong_thanh_toan from v_tong_quan_cong_trinh where ten='Cầu A')::numeric,500000000::numeric,'tổng đã thanh toán = 300tr + 200tr');
+select t.eq((select chua_thanh_toan from v_tong_quan_cong_trinh where ten='Cầu A')::numeric,((select gia_tri_hop_dong from cong_trinh where ten='Cầu A') - 500000000)::numeric,'chưa thanh toán = giá trị hợp đồng − tổng đã thanh toán (tự động)');
+select t.eq((select chua_thanh_toan from v_tong_quan_cong_trinh where ten='Đường B')::numeric,(select gia_tri_hop_dong from cong_trinh where ten='Đường B')::numeric,'công trình chưa thanh toán lần nào: chưa thanh toán = toàn bộ hợp đồng');
+select t.fails($q$insert into thanh_toan (cong_trinh_id,lan,gia_tri) values ('11111111-0000-0000-0000-000000000001',1,1)$q$,'trùng số lần thanh toán');
+select t.fails($q$insert into thanh_toan (cong_trinh_id,lan,gia_tri) values ('11111111-0000-0000-0000-000000000001',9,0)$q$,'số tiền thanh toán bằng 0');
+select t.fails($q$insert into thanh_toan (cong_trinh_id,lan,gia_tri) values ('11111111-0000-0000-0000-000000000001',9,-5)$q$,'số tiền thanh toán âm');
+select t.eq(t.cnt($q$update thanh_toan set gia_tri=250000000 where lan=2 and cong_trinh_id='11111111-0000-0000-0000-000000000001'$q$),1::bigint,'Admin sửa số tiền một lần thanh toán');
+select t.eq((select tong_thanh_toan from v_tong_quan_cong_trinh where ten='Cầu A')::numeric,550000000::numeric,'tổng thanh toán tự cập nhật sau khi sửa');
+insert into thanh_toan (cong_trinh_id,lan,gia_tri) values ('11111111-0000-0000-0000-000000000001',3,900000000);
+select t.eq((select chua_thanh_toan < 0 from v_tong_quan_cong_trinh where ten='Cầu A'),true,'thanh toán vượt hợp đồng: số chưa thanh toán âm (được phép, hiển thị cảnh báo)');
+select t.eq(t.cnt($q$delete from thanh_toan where lan=3 and cong_trinh_id='11111111-0000-0000-0000-000000000001'$q$),1::bigint,'Admin xóa một lần thanh toán');
+select t.eq((select tong_thanh_toan from v_tong_quan_cong_trinh where ten='Cầu A')::numeric,550000000::numeric,'tổng thanh toán tự cập nhật sau khi xóa');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+select t.eq((select count(*) from thanh_toan),2::bigint,'KT xem được thanh toán của công trình được cấp');
+select t.fails($q$insert into thanh_toan (cong_trinh_id,lan,gia_tri) values ('11111111-0000-0000-0000-000000000001',7,1)$q$,'KT thêm lần thanh toán');
+select t.eq(t.cnt('update thanh_toan set gia_tri=1'),0::bigint,'KT sửa thanh toán (0 dòng)');
+select t.eq(t.cnt('delete from thanh_toan'),0::bigint,'KT xóa thanh toán (0 dòng)');
+-- sao lưu và phục hồi gồm cả hai bảng mới
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+create temp table bk3 as select xuat_sao_luu() as j; grant all on bk3 to authenticated;
+select t.eq(jsonb_array_length((select j->'hang_muc_hop_dong' from bk3)),3,'sao lưu có 3 hạng mục hợp đồng');
+select t.eq(jsonb_array_length((select j->'thanh_toan' from bk3)),2,'sao lưu có 2 lần thanh toán');
+select t.as_super(); delete from hang_muc_hop_dong; delete from thanh_toan;
+select t.eq((select count(*) from hang_muc_hop_dong),0::bigint,'giả lập sự cố: mất hạng mục và thanh toán');
+select t.as_user('00000000-0000-0000-0000-0000000000a1'); select phuc_hoi_sao_luu((select j from bk3));
+select t.eq((select count(*) from hang_muc_hop_dong),3::bigint,'phục hồi đủ 3 hạng mục');
+select t.eq((select count(*) from thanh_toan),2::bigint,'phục hồi đủ 2 lần thanh toán');
+select t.eq((select khoi_luong_hoan_thanh from hang_muc_hop_dong where ten='Bê tông')::numeric,200::numeric,'phục hồi giữ nguyên khối lượng đã hoàn thành');
+select t.eq((select tong_thanh_toan from v_tong_quan_cong_trinh where ten='Cầu A')::numeric,550000000::numeric,'phục hồi: tổng thanh toán đúng');
+select phuc_hoi_sao_luu((select j from bk3));
+select t.eq((select count(*) from hang_muc_hop_dong),3::bigint,'phục hồi lần 2 không nhân đôi hạng mục');
+
 \echo ===== TẤT CẢ KIỂM THỬ ĐẠT =====

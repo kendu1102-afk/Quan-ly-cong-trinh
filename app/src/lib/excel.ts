@@ -76,3 +76,38 @@ export async function mauDanhMuc() {
     dong: [{ a: 'Xi măng PC40', b: 'tấn', c: 1500000 }],
   }])
 }
+
+/** Khối lượng hợp đồng theo hạng mục: A STT, B Tên hạng mục, C ĐVT, D Khối lượng, E Đơn giá (dòng có chữ "Tên…" ở cột B là tiêu đề).
+ *  Dòng nhóm (có tên nhưng không có đơn vị và khối lượng) được bỏ qua. */
+export type DongHangMuc = { stt: string; ten: string; dvt: string; khoi_luong_hd: number; don_gia_hd: number; dong: number; loai: 'ok' | 'nhom' | 'loi'; loi?: string }
+export async function docHangMucExcel(f: File): Promise<DongHangMuc[]> {
+  const ExcelJS = (await import('exceljs')).default
+  const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await f.arrayBuffer())
+  const ws = wb.worksheets[0]; const kq: DongHangMuc[] = []
+  const txt = (v: unknown) => String((v as { text?: string; result?: unknown })?.text ?? (v as { result?: unknown })?.result ?? v ?? '').trim()
+  const num = (v: unknown) => { const x = (v as { result?: unknown })?.result ?? v; if (x === null || x === undefined || x === '') return NaN; const n = typeof x === 'number' ? x : Number(String(x).replace(/\./g, '').replace(',', '.')); return Number.isFinite(n) ? n : NaN }
+  let batDau = 1
+  ws.eachRow((r, i) => { if (batDau === 1 && txt(r.getCell(2).value).toLowerCase().startsWith('tên')) batDau = i })
+  const daThay = new Map<string, number>()
+  ws.eachRow((r, i) => {
+    if (i <= batDau) return
+    const ten = txt(r.getCell(2).value); if (!ten) return
+    const dvt = txt(r.getCell(3).value); const klRaw = r.getCell(4).value; const kl = num(klRaw); const dg = num(r.getCell(5).value)
+    const stt = txt(r.getCell(1).value) || String(i - batDau)
+    if (!dvt && (klRaw === null || klRaw === undefined || txt(klRaw) === '')) { kq.push({ stt, ten, dvt: '', khoi_luong_hd: 0, don_gia_hd: 0, dong: i, loai: 'nhom' }); return }
+    let loi: string | undefined
+    if (!dvt) loi = 'Thiếu đơn vị tính'
+    else if (!(kl > 0)) loi = 'Khối lượng phải là số lớn hơn 0'
+    else if (!Number.isNaN(dg) && dg < 0) loi = 'Đơn giá không được âm'
+    else if (daThay.has(stt)) loi = `STT “${stt}” trùng với dòng ${daThay.get(stt)} trong tệp`
+    if (!loi) daThay.set(stt, i)
+    kq.push({ stt, ten, dvt, khoi_luong_hd: kl, don_gia_hd: Number.isNaN(dg) ? 0 : dg, dong: i, loai: loi ? 'loi' : 'ok', loi })
+  })
+  return kq
+}
+export async function mauHangMuc() {
+  await xuatExcel('mau-khoi-luong-hop-dong', 'Mẫu khối lượng hợp đồng theo hạng mục (xóa các dòng ví dụ trước khi nhập)', [{
+    ten: 'Khối lượng hợp đồng', cot: [{ tieuDe: 'STT', khoa: 'a', rong: 8 }, { tieuDe: 'Tên hạng mục', khoa: 'b', rong: 42 }, { tieuDe: 'ĐVT', khoa: 'c', rong: 10 }, { tieuDe: 'Khối lượng', khoa: 'd', dinhDang: 'so' }, { tieuDe: 'Đơn giá', khoa: 'e', dinhDang: 'tien' }],
+    dong: [{ a: 'A', b: 'PHẦN NỀN ĐƯỜNG (dòng nhóm: để trống ĐVT và khối lượng, sẽ được bỏ qua)' }, { a: '1', b: 'Đào nền đường', c: 'm3', d: 1000, e: 50000 }, { a: '2', b: 'Đắp nền đường', c: 'm3', d: 800, e: 70000 }, { a: 'B', b: 'PHẦN MẶT ĐƯỜNG' }, { a: '3', b: 'Rải thảm bê tông nhựa', c: 'm2', d: 2000, e: 150000 }],
+  }])
+}

@@ -14,6 +14,7 @@ $P -f "$R/supabase/migrations/01_schema.sql"
 $P -f "$R/supabase/migrations/03_danh_muc_vat_tu.sql"
 $P -f "$R/supabase/migrations/04_thong_bao_day_va_sao_luu_tu_dong.sql"
 $P -f "$R/supabase/migrations/05_thong_tin_hop_dong.sql"
+$P -f "$R/supabase/migrations/06_khoi_luong_hop_dong_thanh_toan.sql"
 cat > $W/pgrst.conf <<CONF
 db-uri = "postgres://authenticator@127.0.0.1:54399/t"
 db-schemas = "public"

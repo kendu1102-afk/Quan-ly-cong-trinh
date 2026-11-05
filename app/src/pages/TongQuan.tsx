@@ -10,13 +10,14 @@ import { useCanhBao } from '../components/CanhBao'
 import ChonCongTrinh from '../components/ChonCongTrinh'
 
 type TQ = { cong_trinh_id: string; ten: string; luu_tru: boolean; trang_thai: string; gia_tri_hop_dong: number; vt_tong: number; cp_tong: number
-  so_hop_dong?: string; ngay_hoan_thanh_dk?: string | null; ngay_ky_bb_ban_giao?: string | null }
+  so_hop_dong?: string; ngay_hoan_thanh_dk?: string | null; ngay_ky_bb_ban_giao?: string | null
+  tong_thanh_toan?: number; chua_thanh_toan?: number; gia_tri_thuc_hien?: number }
 export const NGUONG_CANH_BAO_CHI_PHI = 70   // % chi phí so với giá trị hợp đồng
 
 export default function TongQuan() {
   const { ds, chon } = useCT()
   const nav = useNavigate()
-  const [chonDich, setChonDich] = useState<null | 'nhap-vt' | 'chi-phi'>(null)
+  const [chonDich, setChonDich] = useState<null | 'nhap-vt' | 'chi-phi' | 'hoan-thanh'>(null)
   const q = useDuLieu<TQ[]>(() => supabase.from('v_tong_quan_cong_trinh').select('*') as never, [], ['phieu_nhap_vt', 'chi_phi', 'cong_trinh'], 'cache-tq')
   const cb = useCanhBao()
   // Đếm ngược theo ngày: tự cập nhật khi qua nửa đêm dù ứng dụng vẫn mở
@@ -35,24 +36,28 @@ export default function TongQuan() {
     .map((x) => ({ ...x, han: hanHopDong(x, hom) }))
     .filter((x) => x.han && x.han.ngay <= NGUONG_HET_HAN_NGAY)
     .sort((a, b) => a.han!.ngay - b.han!.ngay)
-  const vao = (dich: 'nhap-vt' | 'chi-phi') => {
+  const tongHD = tong(hd.map((x) => so(x.gia_tri_hop_dong))); const daTT = tong(hd.map((x) => so(x.tong_thanh_toan))); const chuaTT = tong(hd.map((x) => so(x.chua_thanh_toan)))
+  const vao = (dich: 'nhap-vt' | 'chi-phi' | 'hoan-thanh') => {
     const dang = ds.filter((c) => !c.luu_tru)
     if (dang.length === 1) { chon(dang[0].id); nav(`/ct/${dang[0].id}/${dich}`) } else setChonDich(dich)
   }
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Link to="/ct" className="tile tile-lon"><span className="tile-bd">🏗️</span>Danh sách công trình</Link>
         <button type="button" onClick={() => vao('nhap-vt')} className="tile tile-lon"><span className="tile-bd">🧱</span>Nhập vật tư</button>
         <button type="button" onClick={() => vao('chi-phi')} className="tile tile-lon"><span className="tile-bd">💵</span>Nhập chi phí</button>
+        <button type="button" onClick={() => vao('hoan-thanh')} className="tile tile-lon"><span className="tile-bd">📐</span>Nhập khối lượng hoàn thành</button>
       </div>
       <TieuDe>Tổng quan</TieuDe>
       {q.dangTai ? <Dang /> : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="kpi"><div className="text-sm text-slate-500">Công trình đang quản lý</div><div className="text-2xl font-bold num text-brand">{hd.length}</div></div>
-          <div className="kpi"><div className="text-sm text-slate-500">Tổng giá trị hợp đồng</div><div className="text-xl font-bold num text-brand">{fmtTien(tong(hd.map((x) => so(x.gia_tri_hop_dong))))}</div></div>
-          <div className="kpi"><div className="text-sm text-slate-500">Tổng vật tư đã nhập</div><div className="text-xl font-bold num text-brand">{fmtTien(tong(hd.map((x) => so(x.vt_tong))))}</div></div>
-          <div className="kpi"><div className="text-sm text-slate-500">Tổng chi phí</div><div className="text-xl font-bold num text-brand">{fmtTien(tong(hd.map((x) => so(x.cp_tong))))}</div></div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="kpi"><div className="text-sm text-slate-600">Tổng giá trị hợp đồng</div><div className="text-xl font-bold num text-brand">{fmtTien(tongHD)}</div></div>
+          <div className="kpi"><div className="text-sm text-slate-600">Tổng giá trị đã thanh toán</div><div className="text-xl font-bold num text-ok">{fmtTien(daTT)}</div>{tongHD > 0 && <div className="text-xs text-slate-500 num">{((daTT / tongHD) * 100).toFixed(1)}% giá trị hợp đồng</div>}</div>
+          <div className="kpi"><div className="text-sm text-slate-600">Tổng giá trị chưa thanh toán</div><div className={`text-xl font-bold num ${chuaTT < 0 ? 'text-bad' : 'text-warn'}`}>{fmtTien(chuaTT)}</div>{tongHD > 0 && <div className="text-xs text-slate-500 num">{((chuaTT / tongHD) * 100).toFixed(1)}% giá trị hợp đồng</div>}</div>
+          <div className="kpi"><div className="text-sm text-slate-600">Công trình đang quản lý</div><div className="text-2xl font-bold num text-brand">{hd.length}</div></div>
+          <div className="kpi"><div className="text-sm text-slate-600">Tổng vật tư đã nhập</div><div className="text-xl font-bold num text-brand">{fmtTien(tong(hd.map((x) => so(x.vt_tong))))}</div></div>
+          <div className="kpi"><div className="text-sm text-slate-600">Tổng chi phí</div><div className="text-xl font-bold num text-brand">{fmtTien(tong(hd.map((x) => so(x.cp_tong))))}</div></div>
         </div>
       )}
       <The>
@@ -99,7 +104,7 @@ export default function TongQuan() {
           </div>
         )}
       </The>
-      {chonDich && <ChonCongTrinh tieuDe={chonDich === 'nhap-vt' ? 'Nhập vật tư cho công trình nào?' : 'Nhập chi phí cho công trình nào?'} dong={() => setChonDich(null)} chon={(id) => { chon(id); nav(`/ct/${id}/${chonDich}`) }} />}
+      {chonDich && <ChonCongTrinh tieuDe={chonDich === 'nhap-vt' ? 'Nhập vật tư cho công trình nào?' : chonDich === 'chi-phi' ? 'Nhập chi phí cho công trình nào?' : 'Nhập khối lượng hoàn thành cho công trình nào?'} dong={() => setChonDich(null)} chon={(id) => { chon(id); nav(`/ct/${id}/${chonDich}`) }} />}
     </div>
   )
 }

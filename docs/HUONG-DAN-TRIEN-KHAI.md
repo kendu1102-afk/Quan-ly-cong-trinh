@@ -13,7 +13,7 @@ Tắt luôn **Confirm email** (tài khoản do Admin tạo, không gửi email).
 ## Bước 3. Tạo cơ sở dữ liệu
 SQL Editor → New query → dán TOÀN BỘ nội dung `supabase/migrations/01_schema.sql` → Run (phải báo Success).
 Tiếp tục New query → dán `supabase/migrations/02_storage.sql` → Run.
-Tiếp tục lần lượt với `03_danh_muc_vat_tu.sql`, `04_thong_bao_day_va_sao_luu_tu_dong.sql` (xem thêm `HUONG-DAN-THONG-BAO-VA-SAO-LUU.md`) và `05_thong_tin_hop_dong.sql` (số hợp đồng, ngày ký hợp đồng, tiến độ, ngày ký biên bản bàn giao). Mỗi tệp chạy lại nhiều lần không hỏng dữ liệu.
+Tiếp tục lần lượt với `03_danh_muc_vat_tu.sql`, `04_thong_bao_day_va_sao_luu_tu_dong.sql` (xem thêm `HUONG-DAN-THONG-BAO-VA-SAO-LUU.md`) và `05_thong_tin_hop_dong.sql` (số hợp đồng, ngày ký hợp đồng, tiến độ, ngày ký biên bản bàn giao). Sau cùng chạy `06_khoi_luong_hop_dong_thanh_toan.sql` (khối lượng hợp đồng theo hạng mục, khối lượng hoàn thành, các lần thanh toán). Mỗi tệp chạy lại nhiều lần không hỏng dữ liệu.
 
 ## Bước 4. Tạo tài khoản Admin đầu tiên
 Authentication → Users → **Add user → Create new user**: nhập email của bạn + mật khẩu mạnh, tick **Auto Confirm User**.
