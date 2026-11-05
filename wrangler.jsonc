@@ -1,0 +1,9 @@
+{
+  // Cấu hình Cloudflare: phục vụ thư mục app/dist (bản build của ứng dụng) như một trang web tĩnh
+  "name": "quan-ly-cong-trinh",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./app/dist",
+    "not_found_handling": "single-page-application"
+  }
+}
