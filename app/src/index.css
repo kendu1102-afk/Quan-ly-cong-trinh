@@ -59,7 +59,7 @@ input, select, textarea, button { font-family: inherit; font-size: 16px; }
   border-bottom: 3px solid var(--color-gold);
   box-shadow: 0 10px 24px -10px rgba(6,26,69,.8);
 }
-.dau-trang .logo-huy { background: #fff; border-radius: .9rem; padding: .2rem; box-shadow: 0 0 0 2px var(--color-gold), 0 6px 14px -4px rgba(0,0,0,.5); }
+.dau-trang .logo-huy { background: linear-gradient(160deg, #eceff3 0%, #b0b8c4 100%); border-radius: .9rem; padding: .2rem; box-shadow: 0 0 0 2px var(--color-gold), 0 6px 14px -4px rgba(0,0,0,.5); }
 .dau-trang .tk-nut { background: rgba(255,255,255,.12); border: 1px solid rgba(245,197,66,.75); color: #fff; backdrop-filter: blur(4px); }
 .dau-trang .tk-nut:active { background: rgba(245,197,66,.3); }
 .thanh-duoi { background: linear-gradient(180deg, #123a85 0%, #0a2a66 100%); border-top: 2px solid var(--color-gold);
