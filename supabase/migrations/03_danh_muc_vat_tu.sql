@@ -14,6 +14,9 @@ create table if not exists public.danh_muc_vat_tu (
 );
 
 -- Hàm dấu vết: chỉ ép công trình cố định ở các bảng có cột cong_trinh_id (bảng danh mục không có)
+do $mig$ begin
+  if coalesce(position('hang_muc_hop_dong' in pg_get_functiondef(to_regprocedure('public.dat_dau_vet()'))), 0) = 0 then
+    execute $fn$
 create or replace function public.dat_dau_vet() returns trigger
 language plpgsql set search_path = public as $$
 begin
@@ -33,6 +36,9 @@ begin
   end if;
   return new;
 end $$;
+    $fn$;
+  end if;
+end $mig$;
 
 drop trigger if exists trg_dau_vet on public.danh_muc_vat_tu;
 create trigger trg_dau_vet before insert or update on public.danh_muc_vat_tu for each row execute function public.dat_dau_vet();
@@ -52,6 +58,9 @@ create policy p_dm_upd on public.danh_muc_vat_tu for update using (public.is_adm
 create policy p_dm_del on public.danh_muc_vat_tu for delete using (public.is_admin());
 
 -- Sao lưu / phục hồi: thêm danh mục vào (thay thế hàm cũ)
+do $mig$ begin
+  if coalesce(position('tao_du_lieu_sao_luu' in pg_get_functiondef(to_regprocedure('public.xuat_sao_luu()'))), 0) = 0 then
+    execute $fn$
 create or replace function public.xuat_sao_luu() returns jsonb
 language plpgsql security definer set search_path = public as $$
 begin
@@ -69,7 +78,13 @@ begin
     'tep_dinh_kem',  (select coalesce(jsonb_agg(to_jsonb(x)), '[]') from tep_dinh_kem x),
     'danh_muc_vat_tu', (select coalesce(jsonb_agg(to_jsonb(x)), '[]') from danh_muc_vat_tu x));
 end $$;
+    $fn$;
+  end if;
+end $mig$;
 
+do $mig$ begin
+  if coalesce(position('thanh_toan' in pg_get_functiondef(to_regprocedure('public.phuc_hoi_sao_luu(jsonb)'))), 0) = 0 then
+    execute $fn$
 create or replace function public.phuc_hoi_sao_luu(data jsonb) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare n_ct int; n_vt int; n_pn int; n_cp int; n_pq int; n_tep int; n_dm int;
@@ -140,6 +155,9 @@ begin
   return jsonb_build_object('cong_trinh', n_ct, 'vat_tu_mau', n_vt, 'phieu_nhap_vt', n_pn,
                             'chi_phi', n_cp, 'phan_quyen', n_pq, 'tep_dinh_kem', n_tep, 'danh_muc_vat_tu', n_dm);
 end $$;
+    $fn$;
+  end if;
+end $mig$;
 
 -- Đồng bộ tức thời
 do $$ begin

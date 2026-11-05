@@ -11,6 +11,10 @@ alter table public.cong_trinh
   add column if not exists ngay_ky_bb_ban_giao date;
 
 -- Bảng tổng quan: thêm các cột mới ở cuối (giữ nguyên các cột cũ)
+-- chỉ tạo lại view nếu tệp 06 (bản view mới hơn) chưa được chạy
+do $mig$ begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'v_tong_quan_cong_trinh' and column_name = 'tong_thanh_toan') then
+    execute $fn$
 create or replace view public.v_tong_quan_cong_trinh with (security_invoker = true) as
 select c.id as cong_trinh_id, c.ten, c.chu_dau_tu, c.nam, c.trang_thai, c.luu_tru,
        c.gia_tri_hop_dong, c.ngay_khoi_cong, c.ngay_hoan_thanh_dk,
@@ -29,8 +33,14 @@ left join (select cong_trinh_id, sum(so_tien) tong,
                   sum(so_tien) filter (where chung_tu = 'hdkv') hdkv,
                   sum(so_tien) filter (where chung_tu = 'khong_chung_tu') khong_ct
            from chi_phi where not da_xoa group by 1) k on k.cong_trinh_id = c.id;
+    $fn$;
+  end if;
+end $mig$;
 
 -- Phục hồi sao lưu: nhận thêm 4 cột mới (và vẫn phục hồi được tệp sao lưu cũ chưa có các cột này)
+do $mig$ begin
+  if coalesce(position('thanh_toan' in pg_get_functiondef(to_regprocedure('public.phuc_hoi_sao_luu(jsonb)'))), 0) = 0 then
+    execute $fn$
 create or replace function public.phuc_hoi_sao_luu(data jsonb) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare n_ct int; n_vt int; n_pn int; n_cp int; n_pq int; n_tep int; n_dm int;
@@ -102,4 +112,7 @@ begin
   return jsonb_build_object('cong_trinh', n_ct, 'vat_tu_mau', n_vt, 'phieu_nhap_vt', n_pn,
                             'chi_phi', n_cp, 'phan_quyen', n_pq, 'tep_dinh_kem', n_tep, 'danh_muc_vat_tu', n_dm);
 end $$;
+    $fn$;
+  end if;
+end $mig$;
 

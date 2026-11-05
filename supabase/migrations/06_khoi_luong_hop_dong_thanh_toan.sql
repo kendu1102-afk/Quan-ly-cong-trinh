@@ -5,6 +5,13 @@
 --  * Kế toán được cấp quyền công trình chỉ cập nhật "khối lượng đã hoàn thành" (qua hàm riêng, có kiểm tra).
 --  * Admin nhập các lần thanh toán; số tiền chưa thanh toán = giá trị hợp đồng - tổng đã thanh toán (tự tính).
 -- =====================================================================
+-- Tệp này dùng các cột thông tin hợp đồng của tệp 05: tự tạo nếu bạn chưa chạy tệp 05 (chạy lại không sao)
+alter table public.cong_trinh
+  add column if not exists so_hop_dong text not null default '',
+  add column if not exists ngay_ky_hop_dong date,
+  add column if not exists tien_do text not null default '',
+  add column if not exists ngay_ky_bb_ban_giao date;
+
 create table if not exists public.hang_muc_hop_dong (
   id uuid primary key default gen_random_uuid(),
   cong_trinh_id uuid not null references public.cong_trinh(id) on delete cascade,

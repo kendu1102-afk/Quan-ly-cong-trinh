@@ -13,6 +13,9 @@ insert into public.cau_hinh_bi_mat (khoa, gia_tri) values
 on conflict (khoa) do nothing;
 
 -- ---------- Sao lưu: tách phần tạo dữ liệu (không kiểm quyền, chỉ nội bộ) ----------
+do $mig$ begin
+  if coalesce(position('hang_muc_hop_dong' in pg_get_functiondef(to_regprocedure('public.tao_du_lieu_sao_luu()'))), 0) = 0 then
+    execute $fn$
 create or replace function public.tao_du_lieu_sao_luu() returns jsonb
 language sql security definer set search_path = public as $$
   select jsonb_build_object(
@@ -34,6 +37,9 @@ begin
   if not (public.is_admin() or auth.role() = 'service_role') then raise exception 'Chỉ Admin được sao lưu'; end if;
   return public.tao_du_lieu_sao_luu();
 end $$;
+    $fn$;
+  end if;
+end $mig$;
 
 -- Bản sao lưu tự động nằm ngay trong cơ sở dữ liệu (giữ 30 bản mới nhất, bỏ qua nếu dữ liệu không đổi)
 create table if not exists public.sao_luu_tu_dong (
