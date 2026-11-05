@@ -95,7 +95,7 @@ function SuaCP({ r, ct, tep, dong, xong }: { r: ChiPhiRow; ct: string; tep: TepR
         <Truong nhan="Tên chi phí"><input className={o} value={f.ten} onChange={(e) => setF({ ...f, ten: e.target.value })} /></Truong>
         <Truong nhan="Nhóm chi phí"><input className={o} value={f.nhom} onChange={(e) => setF({ ...f, nhom: e.target.value })} /></Truong>
         <Truong nhan="Số tiền"><input className={o} inputMode="decimal" value={f.tien} onChange={(e) => setF({ ...f, tien: e.target.value })} /></Truong>
-        <Truong nhan="Chứng từ"><Chung gt={f.ct} doi={(v) => setF({ ...f, ct: v })} /></Truong>
+        <Truong nut nhan="Chứng từ"><Chung gt={f.ct} doi={(v) => setF({ ...f, ct: v })} /></Truong>
         <Truong nhan="Chi cho ai"><input className={o} value={f.cho} onChange={(e) => setF({ ...f, cho: e.target.value })} /></Truong>
         <Truong nhan="Ghi chú"><input className={o} value={f.gc} onChange={(e) => setF({ ...f, gc: e.target.value })} /></Truong>
         {tep.map((t) => <div key={t.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><button className="text-blue-800" onClick={() => moTep(t.duong_dan)}>📎 {t.ten_tep || 'Tệp'}</button>
@@ -153,7 +153,7 @@ export default function ChiPhi({ ct }: { ct: string }) {
               <Truong nhan="Số tiền (đồng) *"><input className={o} inputMode="decimal" value={d.tien} onChange={(e) => sua(d.k, { tien: e.target.value })} /></Truong>
               <Truong nhan="Nhóm chi phí"><input className={o} list="dl-nhom" value={d.nhom} onChange={(e) => sua(d.k, { nhom: e.target.value })} placeholder="tự đặt" /></Truong>
             </div>
-            <Truong nhan="Tình trạng chứng từ *"><Chung gt={d.ct} doi={(v) => sua(d.k, { ct: v })} /></Truong>
+            <Truong nut nhan="Tình trạng chứng từ *"><Chung gt={d.ct} doi={(v) => sua(d.k, { ct: v })} /></Truong>
             <Truong nhan="Chi cho ai"><input className={o} list="dl-cho" value={d.cho} onChange={(e) => sua(d.k, { cho: e.target.value })} /></Truong>
             <Truong nhan="Ghi chú"><input className={o} value={d.gc} onChange={(e) => sua(d.k, { gc: e.target.value })} /></Truong>
             <ChonTep teps={d.teps} doi={(t) => sua(d.k, { teps: t })} />

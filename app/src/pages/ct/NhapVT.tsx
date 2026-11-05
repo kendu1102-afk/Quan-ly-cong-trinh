@@ -74,7 +74,7 @@ export default function NhapVT({ ct }: { ct: string }) {
                   <Truong nhan="Đơn giá"><input className={o} inputMode="decimal" value={d.dg} onChange={(e) => sua(d.k, { dg: e.target.value })} /></Truong>
                 </div>
                 <div className="text-lg">Thành tiền: <b className="num text-brand">{fmtTien(tinh(d))}</b> đ</div>
-                <Truong nhan="Tình trạng hóa đơn *"><Lua gt={d.hd} doi={(v) => sua(d.k, { hd: v })} mục={[{ v: true, t: '✔ Có hóa đơn', c: 'bg-ok text-white border-ok' }, { v: false, t: '✘ Không có hóa đơn', c: 'bg-warn text-white border-warn' }]} /></Truong>
+                <Truong nut nhan="Tình trạng hóa đơn *"><Lua gt={d.hd} doi={(v) => sua(d.k, { hd: v })} mục={[{ v: true, t: '✔ Có hóa đơn', c: 'bg-ok text-white border-ok' }, { v: false, t: '✘ Không có hóa đơn', c: 'bg-warn text-white border-warn' }]} /></Truong>
                 <Truong nhan="Ghi chú"><input className={o} value={d.gc} onChange={(e) => sua(d.k, { gc: e.target.value })} /></Truong>
                 <ChonTep teps={d.teps} doi={(t) => sua(d.k, { teps: t })} />
               </div>

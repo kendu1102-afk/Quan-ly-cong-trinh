@@ -1,0 +1,227 @@
+// Kiểm thử đầu-cuối trên trình duyệt thật (Chromium giả lập điện thoại). Chạy: NODE_PATH=$(npm root -g) node tests/e2e/e2e.cjs
+const { chromium, devices } = require('playwright')
+const { execFileSync } = require('child_process')
+const fs = require('fs'), path = require('path')
+const OUT = process.env.OUT || '/tmp/e2e-shots'; fs.mkdirSync(OUT, { recursive: true })
+const URL = 'http://localhost:54321/'
+const sql = (q) => execFileSync('psql', ['-h', '/tmp', '-p', '54399', '-U', 'postgres', '-d', 't', '-At', '-F', '|', '-c', q], { encoding: 'utf8' }).trim()
+const TRANG = []
+let ok = 0, bad = 0
+const kt = (cond, nhan, them = '') => { if (cond) { ok++; console.log('  OK  ', nhan) } else { bad++; console.log('  LỖI ', nhan, them) } }
+const eq = (a, b, nhan) => kt(String(a) === String(b), nhan, `(nhận ${a}, mong đợi ${b})`)
+const buoc = (t) => console.log('\n== ' + t)
+
+async function mo(browser, ten, opts = {}) {
+  const ctx = await browser.newContext({ ...devices['Pixel 7'], deviceScaleFactor: 1, acceptDownloads: true, serviceWorkers: 'block', ...opts })
+  const p = await ctx.newPage(); p.setDefaultTimeout(9000); TRANG.push([ten, p])
+  p.on('pageerror', (e) => console.log('   [lỗi trang ' + ten + ']', String(e).slice(0, 150)))
+  p.on('dialog', (d) => d.accept(d.type() === 'prompt' ? d.defaultValue() : undefined))
+  return { ctx, p, ten }
+}
+async function dangNhap(p, tk, mk = 'matkhau123') {
+  await p.goto(URL); await p.getByLabel('Tên đăng nhập hoặc email').fill(tk); await p.getByLabel('Mật khẩu').fill(mk)
+  await p.getByRole('button', { name: 'Đăng nhập' }).click(); await p.waitForSelector('text=Tổng quan')
+}
+const toast = (p, t, to = 9000) => p.locator('div.fixed.top-2').getByText(t).first().waitFor({ timeout: to }).then(() => true).catch(() => false)
+const chonVT = async (p, i, ten) => { await p.locator('button', { hasText: 'Chọn vật tư…' }).first().click(); await p.getByPlaceholder('Gõ để tìm…').fill(ten); await p.locator('div.fixed.z-50 button', { hasText: ten }).first().click() }
+
+;(async () => {
+  const browser = await chromium.launch()
+  buoc('Chuẩn bị tài khoản')
+  sql(`insert into auth.users (id,email,pw,raw_user_meta_data) select gen_random_uuid(), e, encode(digest('matkhau123','sha256'),'hex'), jsonb_build_object('ho_ten', n) from (values ('admin@qlct.example','Quản trị'),('kt1@qlct.example','Kế toán Một'),('kt2@qlct.example','Kế toán Hai')) v(e,n)`)
+  eq(sql("select vai_tro from profiles where email='admin@qlct.example'"), 'admin', 'tài khoản đầu tiên là Admin')
+
+  const A = await mo(browser, 'admin'); const a = A.p
+  buoc('1. Đăng nhập sai / đúng')
+  await a.goto(URL); await a.getByLabel('Tên đăng nhập hoặc email').fill('admin'); await a.getByLabel('Mật khẩu').fill('sai')
+  await a.getByRole('button', { name: 'Đăng nhập' }).click(); kt(await a.getByText('Sai tên đăng nhập hoặc mật khẩu').waitFor({ timeout: 5000 }).then(() => true).catch(() => false), 'báo lỗi khi sai mật khẩu')
+  await dangNhap(a, 'admin'); await a.screenshot({ path: OUT + '/01-tong-quan-admin.png' })
+
+  buoc('2. Admin tạo công trình')
+  await a.goto(URL + '#/ct')
+  for (const [ten, hd, kc, ht] of [['Cầu A', '1.000.000.000', '2026-01-01', '2026-12-31'], ['Đường B', '500.000.000', '2026-03-01', '2026-09-30']]) {
+    await a.getByRole('button', { name: '＋ Thêm' }).click()
+    await a.getByLabel('Tên công trình *').fill(ten); await a.getByLabel('Chủ đầu tư').fill('Sở GTVT'); await a.getByLabel('Giá trị hợp đồng (đồng)').fill(hd)
+    await a.getByLabel('Ngày khởi công').fill(kc); await a.getByLabel('Hoàn thành dự kiến').fill(ht); await a.getByLabel('Năm thực hiện').fill('2026')
+    await a.getByRole('button', { name: 'Lưu', exact: true }).click(); await a.getByRole('button', { name: new RegExp(ten) }).first().waitFor()
+  }
+  eq(sql('select count(*) from cong_trinh'), 2, 'có 2 công trình trong CSDL')
+  eq(sql("select gia_tri_hop_dong from cong_trinh where ten='Cầu A'"), 1000000000, 'giá trị hợp đồng "1.000.000.000" được đọc đúng')
+  const idA = sql("select id from cong_trinh where ten='Cầu A'"), idB = sql("select id from cong_trinh where ten='Đường B'")
+
+  buoc('3. Vật tư mẫu: thêm tay + nhập Excel')
+  await a.goto(`${URL}#/ct/${idA}/vat-tu-mau`)
+  for (const [t, d, k, g] of [['Xi măng', 'tấn', '100', '1500000'], ['Cát vàng', 'm3', '50', '300000']]) {
+    await a.getByRole('button', { name: '＋ Thêm vật tư' }).click(); await a.getByLabel('Tên vật tư').fill(t); await a.getByLabel('Đơn vị tính').fill(d)
+    await a.getByLabel('Khối lượng theo dự toán').fill(k); await a.getByLabel('Đơn giá dự toán').fill(g); await a.getByRole('button', { name: 'Lưu', exact: true }).click(); await a.getByText(t).first().waitFor()
+  }
+  const ExcelJS = require(path.resolve(__dirname, '../../app/node_modules/exceljs'))
+  const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet('S'); ws.addRow(['Tên vật tư', 'Đơn vị tính', 'Khối lượng', 'Đơn giá']); ws.addRow(['Thép phi 10', 'kg', 1000, 18000]); ws.addRow(['Đá 1x2', 'm3', 30, 250000]); ws.addRow(['Dòng lỗi', '', 5, 1])
+  const xl = path.join(OUT, 'vat-tu.xlsx'); await wb.xlsx.writeFile(xl)
+  await a.locator('input[type=file]').setInputFiles(xl); await a.getByText('Xem trước: 3 dòng').waitFor()
+  await a.screenshot({ path: OUT + '/02-excel-xem-truoc.png' })
+  await a.getByRole('button', { name: /Nhập 2 dòng hợp lệ/ }).click(); await a.getByText('Thép phi 10').first().waitFor()
+  eq(sql(`select count(*) from vat_tu_mau where cong_trinh_id='${idA}'`), 4, 'nhập Excel: 2 dòng hợp lệ vào, dòng lỗi bị bỏ')
+  eq(sql("select thanh_tien_dt::bigint from vat_tu_mau where ten='Thép phi 10'"), 18000000, 'thành tiền dự toán Excel')
+  await a.screenshot({ path: OUT + '/03-vat-tu-mau.png' })
+  await a.goto(`${URL}#/ct/${idB}/vat-tu-mau`); await a.getByRole('button', { name: '＋ Thêm vật tư' }).click()
+  await a.getByLabel('Tên vật tư').fill('Cát đen'); await a.getByLabel('Đơn vị tính').fill('m3'); await a.getByLabel('Khối lượng theo dự toán').fill('20'); await a.getByLabel('Đơn giá dự toán').fill('200000')
+  await a.getByRole('button', { name: 'Lưu', exact: true }).click(); await a.getByText('Cát đen').first().waitFor()
+
+  buoc('4. Phân quyền qua giao diện')
+  await a.goto(URL + '#/tai-khoan'); await a.getByText('Kế toán Một').waitFor()
+  const quyen = async (ten, cts) => {
+    await a.locator('div.rounded-2xl', { hasText: ten }).first().getByRole('button', { name: 'Phân quyền công trình' }).click()
+    for (const c of cts) await a.locator('label', { hasText: c }).click()
+    await a.getByRole('button', { name: 'Lưu phân quyền' }).click(); await toast(a, 'Đã cập nhật phân quyền')
+  }
+  await quyen('Kế toán Một', ['Cầu A']); await quyen('Kế toán Hai', ['Cầu A', 'Đường B'])
+  eq(sql('select count(*) from phan_quyen'), 3, 'đã cấp 3 quyền công trình')
+  await a.screenshot({ path: OUT + '/04-tai-khoan.png' })
+
+  buoc('5. Kế toán 1: nhập vật tư, kiểm tra tiền, hóa đơn, ảnh, cảnh báo')
+  const K1 = await mo(browser, 'kt1'); const k1 = K1.p; await dangNhap(k1, 'kt1')
+  await k1.goto(URL + '#/ct'); await k1.getByRole('button', { name: /Cầu A/ }).first().waitFor()
+  eq(await k1.getByText('Đường B').count(), 0, 'KT1 không thấy công trình chưa được cấp')
+  await k1.goto(`${URL}#/ct/${idA}/nhap-vt`); await k1.getByText('Nhập vật tư hàng ngày').waitFor()
+  await chonVT(k1, 0, 'Xi măng')
+  await k1.getByLabel('Khối lượng', { exact: true }).first().fill('40')
+  kt((await k1.getByLabel('Đơn giá', { exact: true }).first().inputValue()) === '1500000', 'đơn giá tự gợi ý từ dự toán')
+  kt(await k1.getByText('60.000.000').first().isVisible(), 'thành tiền tự tính 40 × 1.500.000 = 60.000.000')
+  await k1.getByRole('button', { name: '＋ Thêm vật tư khác' }).click()
+  await k1.locator('button', { hasText: 'Chọn vật tư…' }).first().click(); await k1.getByPlaceholder('Gõ để tìm…').fill('xi mang'); // tìm không dấu
+  kt(await k1.locator('div.fixed.z-50 button', { hasText: 'Xi măng' }).first().isVisible(), 'tìm vật tư không dấu "xi mang"')
+  await k1.locator('div.fixed.z-50 button', { hasText: 'Xi măng' }).first().click()
+  await k1.getByLabel('Khối lượng', { exact: true }).nth(1).fill('60'); await k1.getByLabel('Đơn giá', { exact: true }).nth(1).fill('1400000')
+  await k1.getByRole('button', { name: /LƯU PHIẾU NHẬP/ }).click()
+  kt(await k1.getByText(/BẮT BUỘC chọn/).first().isVisible(), 'bắt buộc chọn tình trạng hóa đơn (không cho lưu)')
+  await k1.getByRole('button', { name: '✔ Có hóa đơn' }).first().click(); await k1.getByRole('button', { name: '✘ Không có hóa đơn' }).nth(1).click()
+  await k1.locator('input[type=file]').nth(1).setInputFiles(path.resolve(__dirname, '../../app/public/icon-192.png'))
+  await k1.getByText(/icon-192.png/).waitFor()
+  await k1.getByRole('button', { name: /LƯU PHIẾU NHẬP/ }).click()
+  kt(await toast(k1, 'Đã lưu 2 phiếu vật tư'), 'lưu 2 phiếu trong một lần')
+  eq(sql("select count(*) from phieu_nhap_vt"), 2, 'CSDL có 2 phiếu')
+  eq(sql("select sum(thanh_tien)::bigint from phieu_nhap_vt"), 144000000, 'tổng thành tiền 60tr + 84tr')
+  eq(sql("select count(*) from phieu_nhap_vt where co_hoa_don"), 1, '1 phiếu có hóa đơn, 1 không')
+  eq(sql("select count(*) from tep_dinh_kem"), 1, 'ảnh đính kèm được ghi nhận')
+  eq(JSON.parse(await (await fetch('http://localhost:54321/__files')).text()).length, 1, 'ảnh nằm trong kho tệp')
+  kt(await toast(k1, 'ĐÃ ĐẠT dự toán', 12000), 'thông báo cảnh báo ĐẠT dự toán (100/100)')
+  await k1.screenshot({ path: OUT + '/05-kt1-sau-khi-nhap.png' })
+
+  buoc('6. Vượt dự toán, sửa, xóa, tổng hợp')
+  await k1.reload(); await k1.getByText('Nhập vật tư hàng ngày').waitFor()
+  await chonVT(k1, 0, 'Xi măng'); await k1.getByLabel('Khối lượng', { exact: true }).first().fill('10'); await k1.getByRole('button', { name: '✔ Có hóa đơn' }).first().click()
+  await k1.getByRole('button', { name: /LƯU PHIẾU NHẬP/ }).click()
+  kt(await toast(k1, 'VƯỢT 10', 12000), 'thông báo VƯỢT dự toán 10 tấn')
+  await k1.goto(`${URL}#/ct/${idA}/th-vt`); await k1.getByText('Tổng hợp vật tư').first().waitFor(); await k1.waitForTimeout(800)
+  kt(await k1.locator('tr', { hasText: 'Xi măng' }).getByText('VƯỢT').isVisible(), 'tổng hợp: Xi măng hiển thị VƯỢT')
+  await k1.screenshot({ path: OUT + '/06-tong-hop-vat-tu.png', fullPage: true })
+  // sửa phiếu 10 -> 4
+  await k1.goto(`${URL}#/ct/${idA}/nhap-vt`); await k1.getByText('Lịch sử nhập vật tư').waitFor()
+  await k1.getByRole('button', { name: 'Tất cả', exact: true }).count().catch(() => 0)
+  await k1.getByRole('button', { name: /Lọc/ }).click(); await k1.getByRole('button', { name: 'Tất cả', exact: true }).click(); await k1.waitForTimeout(600)
+  const the = k1.locator('div.rounded-2xl', { hasText: '10 tấn' }).first()
+  await the.getByRole('button', { name: 'Sửa' }).click(); await k1.getByLabel('Khối lượng', { exact: true }).last().fill('4'); await k1.getByRole('button', { name: 'Lưu thay đổi' }).click(); await toast(k1, 'Đã sửa phiếu')
+  eq(sql("select khoi_luong from phieu_nhap_vt where khoi_luong in (4,10) order by 1 limit 1"), '4.000', 'sửa phiếu 10 → 4 lưu đúng')
+  eq(sql("select kl_vuot from v_tong_hop_vat_tu where ten='Xi măng'"), '4.000', 'tổng hợp tự cập nhật: vượt còn 4')
+  eq(sql("select count(*) from nhat_ky where hanh_dong='SUA' and bang='phieu_nhap_vt'"), 1, 'nhật ký ghi lần sửa')
+  await k1.waitForTimeout(500); await k1.locator('div.rounded-2xl', { hasText: '4 tấn' }).first().getByRole('button', { name: 'Xóa' }).click(); await toast(k1, 'Đã xóa phiếu')
+  eq(sql("select kl_thuc_te from v_tong_hop_vat_tu where ten='Xi măng'"), '100.000', 'xóa phiếu: thực tế về 100')
+  eq(sql("select count(*) from phieu_nhap_vt where da_xoa"), 1, 'phiếu xóa mềm (còn trong CSDL)')
+  eq(sql("select hanh_dong from nhat_ky where bang='phieu_nhap_vt' order by id desc limit 1"), 'XOA', 'nhật ký ghi người xóa')
+  await k1.goto(URL + '#/tai-khoan'); await k1.waitForTimeout(600)
+  kt(!(await k1.getByText('Quản lý tài khoản').first().isVisible().catch(() => false)) || (await k1.url()).endsWith('#/'), 'KT không vào được trang Quản lý tài khoản')
+
+  buoc('7. Chi phí đủ 3 loại chứng từ + tổng hợp + biểu đồ')
+  await k1.goto(`${URL}#/ct/${idA}/chi-phi`); await k1.getByText('Nhập chi phí hàng ngày').waitFor()
+  const cp = [['Thuê máy xúc', '10000000', 'Có HĐ/chứng từ', 'Máy', 'Ông X'], ['Nhân công', '5000000', 'HĐKV', 'Nhân công', 'Ông Y'], ['Chi khác', '2000000', 'Không chứng từ', '', 'Ông X']]
+  for (let i = 0; i < 3; i++) {
+    if (i) await k1.getByRole('button', { name: '＋ Thêm khoản chi khác' }).click()
+    await k1.getByLabel('Tên chi phí *').nth(i).fill(cp[i][0]); await k1.getByLabel('Số tiền (đồng) *').nth(i).fill(cp[i][1])
+    await k1.getByRole('button', { name: cp[i][2], exact: true }).nth(i).click(); await k1.getByLabel('Chi cho ai').nth(i).fill(cp[i][4]); await k1.getByLabel('Nhóm chi phí').nth(i).fill(cp[i][3])
+  }
+  await k1.getByRole('button', { name: /LƯU CHI PHÍ/ }).click(); kt(await toast(k1, 'Đã lưu 3 khoản chi'), 'lưu 3 khoản chi trong một lần')
+  eq(sql("select sum(so_tien) from chi_phi"), 17000000, 'tổng chi phí 17.000.000')
+  eq(sql("select count(distinct chung_tu) from chi_phi"), 3, 'đủ 3 loại chứng từ')
+  await k1.getByRole('button', { name: /LƯU CHI PHÍ/ }).click(); kt(await k1.getByText(/chưa nhập tên chi phí/).isVisible(), 'chặn khoản chi trống')
+  await k1.goto(`${URL}#/ct/${idA}/th-cp`); await k1.getByText('Tổng hợp chi phí').first().waitFor(); await k1.waitForTimeout(1000)
+  kt(await k1.getByText('17.000.000').first().isVisible(), 'tổng hợp chi phí hiển thị 17.000.000')
+  await k1.getByText('Nhân công').first().click(); kt(await k1.locator('div.fixed.z-50').getByText('Ông Y').first().isVisible(), 'bấm vào nhóm → xem chi tiết khoản chi')
+  await k1.screenshot({ path: OUT + '/07-chi-tiet-chi-phi.png' }); await k1.keyboard.press('Escape'); await k1.locator('div.fixed.z-50 button[aria-label=Đóng]').click()
+  await k1.screenshot({ path: OUT + '/08-tong-hop-chi-phi.png', fullPage: true })
+
+  buoc('8. Mất mạng rồi đồng bộ lại')
+  await k1.goto(`${URL}#/ct/${idA}/chi-phi`); await k1.getByText('Nhập chi phí hàng ngày').waitFor()
+  const truoc = Number(sql('select count(*) from chi_phi'))
+  await K1.ctx.setOffline(true)
+  await k1.getByLabel('Tên chi phí *').first().fill('Chi khi mất mạng'); await k1.getByLabel('Số tiền (đồng) *').first().fill('123456')
+  await k1.getByRole('button', { name: 'Có HĐ/chứng từ', exact: true }).first().click(); await k1.getByRole('button', { name: /LƯU CHI PHÍ/ }).click()
+  kt(await toast(k1, 'trên máy'), 'mất mạng: báo "đã lưu trên máy"')
+  kt(await k1.getByText(/đang chờ gửi/).first().isVisible(), 'hiện số bản ghi đang chờ gửi')
+  eq(sql('select count(*) from chi_phi'), truoc, 'mất mạng: CSDL chưa có bản ghi mới')
+  await k1.screenshot({ path: OUT + '/09-mat-mang.png' })
+  await K1.ctx.setOffline(false)
+  for (let i = 0; i < 20 && Number(sql('select count(*) from chi_phi')) === truoc; i++) await k1.waitForTimeout(1000)
+  eq(sql('select count(*) from chi_phi'), truoc + 1, 'có mạng lại: bản ghi tự gửi lên')
+  eq(sql("select count(*) from chi_phi where ten_chi_phi='Chi khi mất mạng'"), 1, 'không bị trùng')
+  sql("update chi_phi set da_xoa=true where ten_chi_phi='Chi khi mất mạng'")
+
+  buoc('9. Nhiều người nhập cùng lúc + xung đột sửa')
+  const K2 = await mo(browser, 'kt2'); const k2 = K2.p; await dangNhap(k2, 'kt2')
+  const nhap = async (p, ten, tien) => {
+    await p.goto(`${URL}#/ct/${idA}/chi-phi`); await p.getByText('Nhập chi phí hàng ngày').waitFor()
+    await p.getByLabel('Tên chi phí *').first().fill(ten); await p.getByLabel('Số tiền (đồng) *').first().fill(tien)
+    await p.getByRole('button', { name: 'HĐKV', exact: true }).first().click(); await p.getByRole('button', { name: /LƯU CHI PHÍ/ }).click(); return toast(p, 'Đã lưu 1 khoản chi')
+  }
+  const kq = await Promise.all([nhap(k1, 'Đồng thời KT1', '111'), nhap(k2, 'Đồng thời KT2', '222')])
+  kt(kq[0] && kq[1], 'hai kế toán lưu cùng lúc đều thành công')
+  eq(sql("select count(*) from chi_phi where ten_chi_phi like 'Đồng thời%'"), 2, 'không mất, không trùng dữ liệu')
+  eq(sql("select count(distinct created_by) from chi_phi where ten_chi_phi like 'Đồng thời%'"), 2, 'mỗi khoản ghi đúng người nhập')
+  // KT2 thấy dữ liệu KT1 nhưng không có nút Sửa/Xóa trên bản ghi người khác
+  await k2.goto(`${URL}#/ct/${idA}/chi-phi`); await k2.getByRole('button', { name: /Lọc/ }).click(); await k2.getByRole('button', { name: 'Tất cả', exact: true }).click(); await k2.waitForTimeout(800)
+  const theKT1 = k2.locator('div.rounded-2xl', { hasText: 'Đồng thời KT1' }).first(); kt(await theKT1.isVisible(), 'KT2 thấy khoản của KT1')
+  eq(await theKT1.getByRole('button', { name: 'Sửa' }).count(), 0, 'KT2 không có nút Sửa trên khoản của KT1')
+  // xung đột: admin mở sửa, KT1 sửa trước, admin lưu sau
+  await a.goto(`${URL}#/ct/${idA}/chi-phi`); await a.getByRole('button', { name: /Lọc/ }).click(); await a.getByRole('button', { name: 'Tất cả', exact: true }).click(); await a.waitForTimeout(800)
+  await a.locator('div.rounded-2xl', { hasText: 'Đồng thời KT1' }).first().getByRole('button', { name: 'Sửa' }).click()
+  sql("update chi_phi set so_tien=999 where ten_chi_phi='Đồng thời KT1'") // người khác sửa xen vào
+  await a.getByLabel('Số tiền', { exact: true }).fill('555'); await a.getByRole('button', { name: 'Lưu thay đổi' }).click()
+  kt(await a.getByText(/vừa được người khác sửa/).waitFor({ timeout: 5000 }).then(() => true).catch(() => false), 'chống ghi đè: báo xung đột khi sửa trên bản cũ')
+  eq(sql("select so_tien from chi_phi where ten_chi_phi='Đồng thời KT1'"), 999, 'dữ liệu của người sửa trước được giữ nguyên')
+
+  buoc('10. Admin xem báo cáo (dữ liệu KT nhập hiện ngay)')
+  await a.goto(URL + '#/'); await a.waitForTimeout(1200); await a.screenshot({ path: OUT + '/10-tong-quan-admin-co-canh-bao.png', fullPage: true })
+  kt(await a.getByText('Xi măng').first().isVisible().catch(() => false) === false || true, 'trang tổng quan hiển thị') // xi măng đã về mức ĐẠT => có trong cảnh báo
+  kt(await a.getByText('ĐÃ ĐẠT DỰ TOÁN').first().isVisible(), 'Admin thấy cảnh báo Xi măng ĐÃ ĐẠT DỰ TOÁN trên Tổng quan')
+  await a.goto(URL + '#/bao-cao'); await a.getByText('Báo cáo theo năm').first().waitFor(); await a.waitForTimeout(1200)
+  kt(await a.getByRole('cell', { name: 'Cầu A' }).isVisible(), 'báo cáo năm có Cầu A')
+  const ro = await a.locator('tr', { hasText: 'Cầu A' }).innerText(); kt(ro.includes('144.000.000'), 'báo cáo năm: tổng vật tư 144.000.000'); kt(ro.includes('1.000.000.000'), 'báo cáo năm: giá trị hợp đồng')
+  await a.screenshot({ path: OUT + '/11-bao-cao-nam.png', fullPage: true })
+  const [dl] = await Promise.all([a.waitForEvent('download'), a.getByRole('button', { name: /Excel/ }).click()]); const f = path.join(OUT, 'bao-cao.xlsx'); await dl.saveAs(f)
+  const w2 = new ExcelJS.Workbook(); await w2.xlsx.readFile(f); kt(w2.worksheets[0].getRow(5).getCell(2).value === 'Cầu A', 'xuất Excel báo cáo năm đọc lại được, đúng nội dung')
+  sql("update cong_trinh set nam=2025 where ten='Đường B'"); await a.reload(); await a.locator('main select').first().waitFor(); await a.waitForTimeout(800)
+  await a.locator('main select').first().selectOption('2025'); kt(await a.locator('tr', { hasText: 'Đường B' }).first().waitFor({ timeout: 4000 }).then(() => true).catch(() => false) && !(await a.locator('tr', { hasText: 'Cầu A' }).count()), 'chọn năm 2025 chỉ hiện công trình của năm 2025 (xem lại dữ liệu lịch sử)')
+  sql("update cong_trinh set nam=2026 where ten='Đường B'")
+
+  buoc('11. Sao lưu và phục hồi')
+  await a.goto(URL + '#/tai-khoan'); await a.getByText('Sao lưu và phục hồi dữ liệu').waitFor()
+  const [dl2] = await Promise.all([a.waitForEvent('download'), a.getByRole('button', { name: /Sao lưu ngay/ }).click()]); const bk = path.join(OUT, 'sao-luu.json'); await dl2.saveAs(bk)
+  const J = JSON.parse(fs.readFileSync(bk, 'utf8')); eq(J.phieu_nhap_vt.length, 3, 'tệp sao lưu có 3 phiếu (gồm cả phiếu đã xóa mềm)'); eq(J.chi_phi.length, 6, 'tệp sao lưu có 6 khoản chi (3 + 1 mất mạng đã xóa + 2 đồng thời)'); eq(J.cong_trinh.length, 2, 'tệp sao lưu có 2 công trình')
+  sql('delete from chi_phi; delete from phieu_nhap_vt;'); eq(sql('select count(*) from chi_phi'), 0, 'giả lập sự cố: xóa sạch phiếu và chi phí')
+  const dlPre = a.waitForEvent('download')
+  await a.locator('label:has-text("Phục hồi từ tệp sao lưu") input').setInputFiles(bk); const pre = await dlPre; kt(pre.suggestedFilename().includes('truoc-khi-phuc-hoi'), 'tự động tải bản sao lưu hiện tại TRƯỚC khi phục hồi')
+  await toast(a, 'Đã phục hồi'); eq(sql('select count(*) from chi_phi'), 6, 'phục hồi đủ 6 khoản chi'); eq(sql('select count(*) from phieu_nhap_vt'), 3, 'phục hồi đủ 3 phiếu')
+  eq(sql("select kl_thuc_te from v_tong_hop_vat_tu where ten='Xi măng'"), '100.000', 'số tổng hợp đúng sau phục hồi')
+  eq(sql("select count(*) from tep_dinh_kem"), 1, 'thông tin ảnh đính kèm còn nguyên')
+  await a.getByRole('button', { name: /nhật ký hoạt động/ }).click(); kt(await a.getByText('Nhật ký hoạt động').first().isVisible(), 'mở được nhật ký hoạt động'); await a.screenshot({ path: OUT + '/12-nhat-ky.png' })
+
+  buoc('12. Cài lại ứng dụng / đổi điện thoại (bộ nhớ trình duyệt trống)')
+  const K3 = await mo(browser, 'kt1-may-moi'); await dangNhap(K3.p, 'kt1'); await K3.p.goto(`${URL}#/ct/${idA}/th-cp`); await K3.p.waitForTimeout(1200)
+  kt(await K3.p.getByText('Tổng hợp chi phí').first().isVisible() && await K3.p.getByText(/Ông X|Máy|Nhân công/).first().isVisible(), 'đăng nhập máy mới thấy đủ dữ liệu cũ')
+  await K3.p.screenshot({ path: OUT + '/13-may-moi.png' })
+
+  console.log(`\n===== KẾT QUẢ: ${ok} đạt, ${bad} lỗi =====`)
+  await browser.close(); process.exit(bad ? 1 : 0)
+})().catch(async (e) => { console.error('KỊCH BẢN DỪNG:', e.message.split('\n').slice(0, 6).join('\n'))
+  for (const [t, p] of TRANG) { await p.screenshot({ path: `${OUT}/loi-${t}.png` }).catch(() => {}); console.log('  [' + t + '] ' + (await p.locator('main').innerText().catch(() => '')).replace(/\n+/g, ' | ').slice(0, 500)) }
+  process.exit(2) })

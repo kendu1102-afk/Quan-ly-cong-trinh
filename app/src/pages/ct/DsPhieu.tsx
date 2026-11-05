@@ -99,13 +99,13 @@ function SuaPhieuVT({ p, ct, vatTu, tep, dong, xong }: { p: PhieuVT; ct: string;
     <Modal tieuDe="Sửa phiếu nhập vật tư" dong={dong}>
       <div className="space-y-3">
         <Truong nhan="Ngày"><input type="date" className={o} value={f.ngay} onChange={(e) => setF({ ...f, ngay: e.target.value })} /></Truong>
-        <Truong nhan="Vật tư"><ChonTim ds={vatTu} gt={f.vat_tu_id} doi={(id) => setF({ ...f, vat_tu_id: id })} nhan={(x) => `${x.ten} (${x.dvt})`} /></Truong>
+        <Truong nut nhan="Vật tư"><ChonTim ds={vatTu} gt={f.vat_tu_id} doi={(id) => setF({ ...f, vat_tu_id: id })} nhan={(x) => `${x.ten} (${x.dvt})`} /></Truong>
         <div className="grid grid-cols-2 gap-3">
           <Truong nhan="Khối lượng"><input className={o} inputMode="decimal" value={f.kl} onChange={(e) => setF({ ...f, kl: e.target.value })} /></Truong>
           <Truong nhan="Đơn giá"><input className={o} inputMode="decimal" value={f.dg} onChange={(e) => setF({ ...f, dg: e.target.value })} /></Truong>
         </div>
         <div className="text-lg">Thành tiền: <b className="num text-brand">{fmtTien(thanhTien(kl || 0, dg || 0))}</b> đ</div>
-        <Truong nhan="Hóa đơn"><Lua gt={f.hd} doi={(v) => setF({ ...f, hd: v })} mục={[{ v: true, t: 'Có hóa đơn', c: 'bg-ok text-white border-ok' }, { v: false, t: 'Không có hóa đơn', c: 'bg-warn text-white border-warn' }]} /></Truong>
+        <Truong nut nhan="Hóa đơn"><Lua gt={f.hd} doi={(v) => setF({ ...f, hd: v })} mục={[{ v: true, t: 'Có hóa đơn', c: 'bg-ok text-white border-ok' }, { v: false, t: 'Không có hóa đơn', c: 'bg-warn text-white border-warn' }]} /></Truong>
         <Truong nhan="Ghi chú"><input className={o} value={f.gc} onChange={(e) => setF({ ...f, gc: e.target.value })} /></Truong>
         {tep.map((t) => <div key={t.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><button className="text-blue-800" onClick={() => moTep(t.duong_dan)}>📎 {t.ten_tep || 'Tệp'}</button>
           {isAdmin && <button className="text-bad" onClick={async () => { if (!confirm('Xóa tệp này?')) return; await supabase.storage.from('chung-tu').remove([t.duong_dan]); await supabase.from('tep_dinh_kem').delete().eq('id', t.id); xong() }}>Xóa</button>}</div>)}

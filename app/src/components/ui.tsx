@@ -9,9 +9,11 @@ const MAU: Record<string, string> = {
 export function Nut({ mau = 'chinh', className = '', ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { mau?: keyof typeof MAU }) {
   return <button type="button" {...p} className={`min-h-12 rounded-xl px-4 font-semibold disabled:opacity-50 ${MAU[mau]} ${className}`} />
 }
-export const Truong = ({ nhan, children, className = '' }: { nhan: string; children: ReactNode; className?: string }) => (
-  <label className={`block ${className}`}><span className="mb-1 block text-sm font-medium text-slate-600">{nhan}</span>{children}</label>
-)
+// nut=true: nhóm nút bấm (không bọc bằng <label> để bấm vào chữ không kích hoạt nhầm nút đầu tiên)
+export const Truong = ({ nhan, children, className = '', nut = false }: { nhan: string; children: ReactNode; className?: string; nut?: boolean }) => {
+  const Tag = nut ? 'div' : 'label'
+  return <Tag className={`block ${className}`}><span className="mb-1 block text-sm font-medium text-slate-600">{nhan}</span>{children}</Tag>
+}
 export const o = 'w-full min-h-12 rounded-xl border border-slate-300 bg-white px-3 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20'
 export const The = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
   <div className={`rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 ${className}`}>{children}</div>

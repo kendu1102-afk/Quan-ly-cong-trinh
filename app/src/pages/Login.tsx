@@ -20,7 +20,7 @@ export default function Login() {
         <Truong nhan="Tên đăng nhập hoặc email"><input className={o} value={tk} onChange={(e) => setTk(e.target.value)} autoCapitalize="none" autoComplete="username" required /></Truong>
         <Truong nhan="Mật khẩu"><input className={o} type="password" value={mk} onChange={(e) => setMk(e.target.value)} autoComplete="current-password" required /></Truong>
         <Loi t={loi} />
-        <Nut className="w-full text-lg" disabled={bận}>{bận ? 'Đang đăng nhập…' : 'Đăng nhập'}</Nut>
+        <Nut type="submit" className="w-full text-lg" disabled={bận}>{bận ? 'Đang đăng nhập…' : 'Đăng nhập'}</Nut>
       </form>
     </div>
   )

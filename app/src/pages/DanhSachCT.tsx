@@ -42,7 +42,7 @@ export function FormCT({ ct, xong, dong }: { ct?: CongTrinh; xong: () => void; d
         </div>
         <Truong nhan="Ghi chú"><textarea className={o} rows={2} value={f.ghi_chu} onChange={(e) => set('ghi_chu', e.target.value)} /></Truong>
         <Loi t={loi} />
-        <Nut className="w-full" disabled={ban}>{ban ? 'Đang lưu…' : 'Lưu'}</Nut>
+        <Nut type="submit" className="w-full" disabled={ban}>{ban ? 'Đang lưu…' : 'Lưu'}</Nut>
       </form>
     </Modal>
   )
