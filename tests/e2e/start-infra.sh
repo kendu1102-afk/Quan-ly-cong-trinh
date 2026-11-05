@@ -13,6 +13,7 @@ $P -c "alter table auth.users add column pw text; create role authenticator logi
 $P -f "$R/supabase/migrations/01_schema.sql"
 $P -f "$R/supabase/migrations/03_danh_muc_vat_tu.sql"
 $P -f "$R/supabase/migrations/04_thong_bao_day_va_sao_luu_tu_dong.sql"
+$P -f "$R/supabase/migrations/05_thong_tin_hop_dong.sql"
 cat > $W/pgrst.conf <<CONF
 db-uri = "postgres://authenticator@127.0.0.1:54399/t"
 db-schemas = "public"

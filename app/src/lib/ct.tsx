@@ -7,6 +7,7 @@ export type CongTrinh = {
   id: string; ten: string; chu_dau_tu: string; dia_diem: string; gia_tri_hop_dong: number
   ngay_khoi_cong: string | null; ngay_hoan_thanh_dk: string | null; nam: number; ghi_chu: string
   trang_thai: 'dang_thuc_hien' | 'tam_dung' | 'hoan_thanh'; luu_tru: boolean; version: number
+  so_hop_dong?: string; ngay_ky_hop_dong?: string | null; tien_do?: string; ngay_ky_bb_ban_giao?: string | null
 }
 type C = { ds: CongTrinh[]; dangTai: boolean; cur: string | null; chon: (id: string) => void; hienTai?: CongTrinh; tai: () => void }
 const Ctx = createContext<C>(null as never)

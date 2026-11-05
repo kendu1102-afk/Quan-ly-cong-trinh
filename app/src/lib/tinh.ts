@@ -36,3 +36,10 @@ export const CHUNG_TU: Record<string, string> = {
 export const TRANG_THAI: Record<string, string> = {
   dang_thuc_hien: 'Đang thực hiện', tam_dung: 'Tạm dừng', hoan_thanh: 'Hoàn thành',
 }
+
+/** Số ngày còn lại tính từ `homNayStr` đến `den` (cùng dạng yyyy-mm-dd). 0 = hôm nay, âm = đã quá hạn. */
+export const soNgayConLai = (den: string, homNayStr: string = homNay()): number => {
+  const t = (s: string) => { const [y, m, d] = s.slice(0, 10).split('-').map(Number); return Date.UTC(y, m - 1, d) }
+  return Math.round((t(den) - t(homNayStr)) / 86400000)
+}
+export const NGUONG_HET_HAN_NGAY = 10   // báo khi hợp đồng còn từ 10 ngày trở xuống

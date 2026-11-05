@@ -7,7 +7,7 @@ import { fmtNgay, fmtTien, TRANG_THAI, docSo } from '../lib/tinh'
 import { Huy, Modal, Nut, Rong, The, TieuDe, Truong, o, Loi } from '../components/ui'
 import { thongBao } from '../lib/thongbao'
 
-const trong = { ten: '', chu_dau_tu: '', dia_diem: '', gia_tri_hop_dong: '', ngay_khoi_cong: '', ngay_hoan_thanh_dk: '', nam: String(new Date().getFullYear()), ghi_chu: '', trang_thai: 'dang_thuc_hien' }
+const trong = { ten: '', chu_dau_tu: '', dia_diem: '', so_hop_dong: '', ngay_ky_hop_dong: '', gia_tri_hop_dong: '', tien_do: '', ngay_khoi_cong: '', ngay_hoan_thanh_dk: '', ngay_ky_bb_ban_giao: '', nam: String(new Date().getFullYear()), ghi_chu: '', trang_thai: 'dang_thuc_hien' }
 
 export function FormCT({ ct, xong, dong }: { ct?: CongTrinh; xong: () => void; dong: () => void }) {
   const [f, setF] = useState(ct ? { ...trong, ...Object.fromEntries(Object.entries(ct).map(([k, v]) => [k, v == null ? '' : String(v)])) } : trong)
@@ -18,14 +18,21 @@ export function FormCT({ ct, xong, dong }: { ct?: CongTrinh; xong: () => void; d
     const gt = f.gia_tri_hop_dong === '' ? 0 : docSo(String(f.gia_tri_hop_dong))
     if (!f.ten.trim()) return setLoi('Nhập tên công trình')
     if (!Number.isFinite(gt) || gt < 0) return setLoi('Giá trị hợp đồng không hợp lệ')
-    const row = { ten: f.ten.trim(), chu_dau_tu: f.chu_dau_tu, dia_diem: f.dia_diem, gia_tri_hop_dong: gt, ngay_khoi_cong: f.ngay_khoi_cong || null,
+    if (f.ngay_khoi_cong && f.ngay_hoan_thanh_dk && f.ngay_hoan_thanh_dk < f.ngay_khoi_cong) return setLoi('Ngày hoàn thành theo hợp đồng không được trước ngày khởi công')
+    const goc = { ten: f.ten.trim(), chu_dau_tu: f.chu_dau_tu, dia_diem: f.dia_diem, gia_tri_hop_dong: gt, ngay_khoi_cong: f.ngay_khoi_cong || null,
       ngay_hoan_thanh_dk: f.ngay_hoan_thanh_dk || null, nam: Number(f.nam) || new Date().getFullYear(), ghi_chu: f.ghi_chu, trang_thai: f.trang_thai }
+    const moi = { so_hop_dong: f.so_hop_dong.trim(), ngay_ky_hop_dong: f.ngay_ky_hop_dong || null, tien_do: f.tien_do.trim(), ngay_ky_bb_ban_giao: f.ngay_ky_bb_ban_giao || null }
+    const gui = (row: Record<string, unknown>) => ct ? supabase.from('cong_trinh').update(row, { count: 'exact' }).eq('id', ct.id).eq('version', ct.version) : supabase.from('cong_trinh').insert(row)
     setBan(true)
-    const r = ct ? await supabase.from('cong_trinh').update(row, { count: 'exact' }).eq('id', ct.id).eq('version', ct.version) : await supabase.from('cong_trinh').insert(row)
+    let r = await gui({ ...goc, ...moi })
+    // Phòng khi chưa chạy tệp SQL 05 trên Supabase: vẫn lưu được phần thông tin cũ và báo rõ
+    if (r.error && /so_hop_dong|ngay_ky_hop_dong|tien_do|ngay_ky_bb_ban_giao/.test(r.error.message)) {
+      r = await gui(goc); if (!r.error) thongBao('Đã lưu phần thông tin cũ. Các ô hợp đồng mới CHƯA lưu được vì chưa chạy tệp SQL 05 trên Supabase.', 'canhbao')
+    }
     setBan(false)
     if (r.error) return setLoi(r.error.message)
     if (ct && r.count === 0) return setLoi('Dữ liệu đã được người khác sửa trước. Hãy đóng và mở lại để lấy bản mới nhất.')
-    thongBao('Đã lưu công trình'); xong()
+    if (!r.error) thongBao('Đã lưu công trình'); xong()
   }
   return (
     <Modal tieuDe={ct ? 'Sửa công trình' : 'Thêm công trình'} dong={dong}>
@@ -33,10 +40,18 @@ export function FormCT({ ct, xong, dong }: { ct?: CongTrinh; xong: () => void; d
         <Truong nhan="Tên công trình *"><input className={o} value={f.ten} onChange={(e) => set('ten', e.target.value)} /></Truong>
         <Truong nhan="Chủ đầu tư"><input className={o} value={f.chu_dau_tu} onChange={(e) => set('chu_dau_tu', e.target.value)} /></Truong>
         <Truong nhan="Địa điểm xây dựng"><input className={o} value={f.dia_diem} onChange={(e) => set('dia_diem', e.target.value)} /></Truong>
+        <div className="grid grid-cols-2 gap-3">
+          <Truong nhan="Số hợp đồng"><input className={o} value={f.so_hop_dong} onChange={(e) => set('so_hop_dong', e.target.value)} placeholder="vd: 12/2026/HĐ-XD" /></Truong>
+          <Truong nhan="Ngày ký hợp đồng"><input type="date" className={o} value={f.ngay_ky_hop_dong} onChange={(e) => set('ngay_ky_hop_dong', e.target.value)} /></Truong>
+        </div>
         <Truong nhan="Giá trị hợp đồng (đồng)"><input className={o} inputMode="decimal" value={f.gia_tri_hop_dong} onChange={(e) => set('gia_tri_hop_dong', e.target.value)} /></Truong>
+        <Truong nhan="Tiến độ thực hiện theo hợp đồng"><input className={o} value={f.tien_do} onChange={(e) => set('tien_do', e.target.value)} placeholder="vd: 365 ngày, hoặc 12 tháng" /></Truong>
         <div className="grid grid-cols-2 gap-3">
           <Truong nhan="Ngày khởi công"><input type="date" className={o} value={f.ngay_khoi_cong} onChange={(e) => set('ngay_khoi_cong', e.target.value)} /></Truong>
-          <Truong nhan="Hoàn thành dự kiến"><input type="date" className={o} value={f.ngay_hoan_thanh_dk} onChange={(e) => set('ngay_hoan_thanh_dk', e.target.value)} /></Truong>
+          <Truong nhan="Ngày hoàn thành theo hợp đồng"><input type="date" className={o} value={f.ngay_hoan_thanh_dk} onChange={(e) => set('ngay_hoan_thanh_dk', e.target.value)} /></Truong>
+        </div>
+        <Truong nhan="Ngày ký biên bản bàn giao đưa vào sử dụng"><input type="date" className={o} value={f.ngay_ky_bb_ban_giao} onChange={(e) => set('ngay_ky_bb_ban_giao', e.target.value)} /></Truong>
+        <div className="grid grid-cols-2 gap-3">
           <Truong nhan="Năm thực hiện"><input className={o} inputMode="numeric" value={f.nam} onChange={(e) => set('nam', e.target.value)} /></Truong>
           <Truong nhan="Tình trạng"><select className={o} value={f.trang_thai} onChange={(e) => set('trang_thai', e.target.value)}>{Object.entries(TRANG_THAI).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Truong>
         </div>
@@ -70,7 +85,7 @@ export default function DanhSachCT() {
             <div className="flex items-start justify-between gap-2"><b className="text-lg text-brand">{c.ten}</b>
               <Huy loai={c.trang_thai === 'hoan_thanh' ? 'ok' : c.trang_thai === 'tam_dung' ? 'xam' : 'xanh'}>{TRANG_THAI[c.trang_thai]}</Huy></div>
             <div className="text-slate-600">{c.chu_dau_tu}{c.dia_diem ? ' · ' + c.dia_diem : ''}</div>
-            <div className="mt-1 text-sm num">Hợp đồng: <b>{fmtTien(c.gia_tri_hop_dong)}</b> · Năm {c.nam}{c.ngay_khoi_cong ? ` · ${fmtNgay(c.ngay_khoi_cong)} → ${fmtNgay(c.ngay_hoan_thanh_dk)}` : ''}</div>
+            <div className="mt-1 text-sm num">{c.so_hop_dong ? `HĐ số ${c.so_hop_dong} · ` : ''}Hợp đồng: <b>{fmtTien(c.gia_tri_hop_dong)}</b> · Năm {c.nam}{c.ngay_khoi_cong ? ` · ${fmtNgay(c.ngay_khoi_cong)} → ${fmtNgay(c.ngay_hoan_thanh_dk)}` : ''}</div>
           </button>
           {isAdmin && (
             <div className="mt-2 flex gap-2">

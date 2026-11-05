@@ -275,4 +275,24 @@ select t.as_super(); create temp table dem as select count(*) as n from thong_ba
 select t.as_user('00000000-0000-0000-0000-0000000000a1'); select phuc_hoi_sao_luu(lay_sao_luu_tu_dong((select max(id) from sao_luu_tu_dong)));
 select t.as_super(); select t.eq((select count(*) from thong_bao_day),(select n from dem),'phục hồi dữ liệu không sinh thông báo đẩy giả');
 
+-- ===== 13. Thông tin hợp đồng của công trình =====
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+select t.eq(t.cnt($q$update cong_trinh set so_hop_dong='12/2026/HĐ-XD', ngay_ky_hop_dong='2025-12-20', tien_do='365 ngày', ngay_ky_bb_ban_giao='2026-12-30' where ten='Cầu A'$q$),1::bigint,'Admin nhập số HĐ, ngày ký, tiến độ, ngày ký biên bản bàn giao');
+select t.eq((select so_hop_dong from v_tong_quan_cong_trinh where ten='Cầu A'),'12/2026/HĐ-XD','bảng tổng quan có số hợp đồng');
+select t.eq((select ngay_ky_bb_ban_giao::text from v_tong_quan_cong_trinh where ten='Cầu A'),'2026-12-30','bảng tổng quan có ngày ký biên bản bàn giao');
+select t.eq((select tien_do from cong_trinh where ten='Đường B'),'','công trình chưa nhập: tiến độ mặc định rỗng (không null)');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+select t.eq(t.cnt($q$update cong_trinh set so_hop_dong='SỬA TRỘM', tien_do='x' where ten='Cầu A'$q$),0::bigint,'Kế toán không sửa được thông tin hợp đồng');
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+create temp table bk2 as select xuat_sao_luu() as j; grant all on bk2 to authenticated;
+select t.eq((select j->'cong_trinh'->0->>'so_hop_dong' is not null from bk2),true,'sao lưu có cột số hợp đồng');
+update cong_trinh set so_hop_dong='', tien_do='', ngay_ky_bb_ban_giao=null where ten='Cầu A';
+select phuc_hoi_sao_luu((select j from bk2));
+select t.eq((select so_hop_dong from cong_trinh where ten='Cầu A'),'12/2026/HĐ-XD','phục hồi khôi phục lại số hợp đồng');
+select t.eq((select ngay_ky_bb_ban_giao::text from cong_trinh where ten='Cầu A'),'2026-12-30','phục hồi khôi phục lại ngày ký biên bản bàn giao');
+-- tệp sao lưu CŨ (chưa có 4 cột mới) vẫn phục hồi được
+select phuc_hoi_sao_luu((select jsonb_set(j,'{cong_trinh}',(select jsonb_agg(e - 'so_hop_dong' - 'ngay_ky_hop_dong' - 'tien_do' - 'ngay_ky_bb_ban_giao') from jsonb_array_elements(j->'cong_trinh') e)) from bk2));
+select t.eq((select count(*) from cong_trinh),2::bigint,'phục hồi tệp sao lưu cũ không lỗi, không mất công trình');
+select t.eq((select so_hop_dong is not null and tien_do is not null from cong_trinh where ten='Cầu A'),true,'tệp cũ: cột chữ mới không bị null');
+
 \echo ===== TẤT CẢ KIỂM THỬ ĐẠT =====

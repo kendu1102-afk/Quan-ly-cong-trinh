@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useCT } from '../lib/ct'
 import { useAuth } from '../lib/auth'
 import { fmtNgay, fmtTien, TRANG_THAI } from '../lib/tinh'
+import { hanHopDong } from '../lib/han'
 import { Dang, Huy, Nut, Rong, The, TieuDe } from '../components/ui'
 import ChonCongTrinh from '../components/ChonCongTrinh'
 import { useNavigate } from 'react-router-dom'
@@ -51,14 +52,20 @@ export default function TrangCT() {
 
 function ThongTin({ ct, sua }: { ct: NonNullable<ReturnType<typeof useCT>['hienTai']>; sua: boolean }) {
   const { tai } = useCT(); const [mo, setMo] = useState(false)
+  const conHan = hanHopDong(ct)
   const dong = (a: string, b: string) => <div className="flex justify-between gap-3 border-b py-2"><span className="text-slate-500">{a}</span><b className="text-right">{b || '—'}</b></div>
   return (
     <div>
       <TieuDe phai={sua && <Nut onClick={() => setMo(true)}>✏️ Sửa</Nut>}>{ct.ten}</TieuDe>
       <The>
         <div className="mb-2"><Huy loai={ct.trang_thai === 'hoan_thanh' ? 'ok' : ct.trang_thai === 'tam_dung' ? 'xam' : 'xanh'}>{TRANG_THAI[ct.trang_thai]}</Huy></div>
-        {dong('Chủ đầu tư', ct.chu_dau_tu)}{dong('Địa điểm', ct.dia_diem)}{dong('Giá trị hợp đồng', fmtTien(ct.gia_tri_hop_dong) + ' đ')}
-        {dong('Ngày khởi công', fmtNgay(ct.ngay_khoi_cong))}{dong('Hoàn thành dự kiến', fmtNgay(ct.ngay_hoan_thanh_dk))}{dong('Năm thực hiện', String(ct.nam))}{dong('Ghi chú', ct.ghi_chu)}
+        {dong('Chủ đầu tư', ct.chu_dau_tu)}{dong('Địa điểm', ct.dia_diem)}
+        {dong('Số hợp đồng', ct.so_hop_dong ?? '')}{dong('Ngày ký hợp đồng', fmtNgay(ct.ngay_ky_hop_dong))}
+        {dong('Giá trị hợp đồng', fmtTien(ct.gia_tri_hop_dong) + ' đ')}{dong('Tiến độ thực hiện theo hợp đồng', ct.tien_do ?? '')}
+        {dong('Ngày khởi công', fmtNgay(ct.ngay_khoi_cong))}{dong('Ngày hoàn thành theo hợp đồng', fmtNgay(ct.ngay_hoan_thanh_dk))}
+        {conHan && <div className="flex justify-between gap-3 border-b py-2"><span className="text-slate-500">Thời hạn hợp đồng</span><Huy loai={conHan.loai}>{conHan.chu}</Huy></div>}
+        {dong('Ngày ký biên bản bàn giao đưa vào sử dụng', fmtNgay(ct.ngay_ky_bb_ban_giao))}
+        {dong('Năm thực hiện', String(ct.nam))}{dong('Ghi chú', ct.ghi_chu)}
       </The>
       {mo && <FormCT ct={ct} dong={() => setMo(false)} xong={() => { setMo(false); tai() }} />}
     </div>

@@ -42,12 +42,25 @@ const chonVT = async (p, i, ten) => { await p.locator('button', { hasText: 'Ch�
   for (const [ten, hd, kc, ht] of [['Cầu A', '1.000.000.000', '2026-01-01', '2026-12-31'], ['Đường B', '500.000.000', '2026-03-01', '2026-09-30']]) {
     await a.getByRole('button', { name: '＋ Thêm' }).click()
     await a.getByLabel('Tên công trình *').fill(ten); await a.getByLabel('Chủ đầu tư').fill('Sở GTVT'); await a.getByLabel('Giá trị hợp đồng (đồng)').fill(hd)
-    await a.getByLabel('Ngày khởi công').fill(kc); await a.getByLabel('Hoàn thành dự kiến').fill(ht); await a.getByLabel('Năm thực hiện').fill('2026')
+    await a.getByLabel('Ngày khởi công').fill(kc); await a.getByLabel('Ngày hoàn thành theo hợp đồng').fill(ht); await a.getByLabel('Năm thực hiện').fill('2026')
     await a.getByRole('button', { name: 'Lưu', exact: true }).click(); await a.getByRole('button', { name: new RegExp(ten) }).first().waitFor()
   }
   eq(sql('select count(*) from cong_trinh'), 2, 'có 2 công trình trong CSDL')
   eq(sql("select gia_tri_hop_dong from cong_trinh where ten='Cầu A'"), 1000000000, 'giá trị hợp đồng "1.000.000.000" được đọc đúng')
   const idA = sql("select id from cong_trinh where ten='Cầu A'"), idB = sql("select id from cong_trinh where ten='Đường B'")
+
+  buoc('2b. Thông tin hợp đồng: nhập qua giao diện, hiển thị ở trang thông tin')
+  await a.goto(`${URL}#/ct/${idA}/thong-tin`); await a.getByRole('button', { name: /Sửa/ }).click()
+  kt((await a.getByLabel('Ngày hoàn thành theo hợp đồng').count()) === 1 && (await a.getByText('Hoàn thành dự kiến').count()) === 0, 'nhãn đã đổi thành “Ngày hoàn thành theo hợp đồng” (không còn “Hoàn thành dự kiến”)')
+  await a.getByLabel('Số hợp đồng', { exact: true }).fill('12/2026/HĐ-XD'); await a.getByLabel('Ngày ký hợp đồng').fill('2025-12-20'); await a.getByLabel('Tiến độ thực hiện theo hợp đồng').fill('365 ngày')
+  await a.getByLabel('Ngày ký biên bản bàn giao đưa vào sử dụng').fill('2027-01-10')
+  await a.getByLabel('Ngày hoàn thành theo hợp đồng').fill('2025-06-01'); await a.getByRole('button', { name: 'Lưu', exact: true }).click()
+  kt(await a.getByText(/không được trước ngày khởi công/).waitFor({ timeout: 4000 }).then(() => true).catch(() => false), 'chặn ngày hoàn thành trước ngày khởi công')
+  await a.getByLabel('Ngày hoàn thành theo hợp đồng').fill('2026-12-31'); await a.getByRole('button', { name: 'Lưu', exact: true }).click(); await toast(a, 'Đã lưu công trình')
+  eq(sql("select so_hop_dong||'|'||ngay_ky_hop_dong||'|'||tien_do||'|'||ngay_ky_bb_ban_giao from cong_trinh where ten='Cầu A'"), '12/2026/HĐ-XD|2025-12-20|365 ngày|2027-01-10', 'lưu đủ: số HĐ, ngày ký, tiến độ, ngày ký biên bản bàn giao')
+  const tt = await a.locator('main').innerText()
+  kt(['Số hợp đồng', '12/2026/HĐ-XD', '20/12/2025', 'Tiến độ thực hiện theo hợp đồng', '365 ngày', 'Ngày hoàn thành theo hợp đồng', '31/12/2026', 'Ngày ký biên bản bàn giao đưa vào sử dụng', '10/01/2027'].every((x) => tt.includes(x)), 'trang thông tin hiển thị đủ các mục mới')
+  await a.screenshot({ path: OUT + '/02b-thong-tin-hop-dong.png', fullPage: true })
 
   buoc('3. Danh mục vật tư mẫu dùng chung + vật tư theo dự toán (chọn nhanh từ danh mục, thêm tay, nhập Excel)')
   await a.goto(URL + '#/vat-tu-mau'); await a.getByText('dùng chung cho tất cả công trình').waitFor()
@@ -246,6 +259,26 @@ const chonVT = async (p, i, ten) => { await p.locator('button', { hasText: 'Ch�
   sql("update cong_trinh set trang_thai='dang_thuc_hien' where ten='Đường B'; delete from chi_phi where ten_chi_phi='KIỂM THỬ 70%'")
   await a.goto(URL + '#/'); await a.getByRole('button', { name: /Thêm/ }).click(); for (const t of ['Báo cáo theo năm', 'Quản lý tài khoản', 'Nhập vật tư mẫu (dùng chung)']) kt(await a.getByRole('button', { name: new RegExp(t.replace(/[()]/g, '\\$&')) }).isVisible(), 'Admin vẫn vào được qua menu Thêm: ' + t)
   await a.locator('button[aria-label=Đóng]').click()
+
+  buoc('10c. Cảnh báo hợp đồng sắp hết hạn (đếm ngược theo ngày)')
+  const lech = (n) => { const d = new Date(); d.setDate(d.getDate() + n); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10) }
+  const datHan = (v, them = {}) => { const g = { ngay_hoan_thanh_dk: v === null ? null : v, trang_thai: 'dang_thuc_hien', ngay_ky_bb_ban_giao: null, luu_tru: false, ...them }
+    const q = (x) => (x === null ? 'null' : typeof x === 'boolean' ? String(x) : `'${x}'`); return sql(`update cong_trinh set ${Object.entries(g).map(([k, x]) => `${k}=${q(x)}`).join(', ')} where ten='Đường B'`) }
+  const khungHan = () => a.locator('.the', { hasText: 'Hợp đồng sắp hết hạn' })
+  const taiHan = async () => { await a.goto(URL + '#/'); await a.reload(); await a.getByText('Hợp đồng sắp hết hạn').waitFor(); await a.waitForTimeout(900); return khungHan().innerText() }
+  let h = (datHan(lech(10)), await taiHan()); kt(h.includes('Đường B') && h.includes('CÒN 10 NGÀY'), 'còn đúng 10 ngày: có cảnh báo “CÒN 10 NGÀY”', h.slice(0, 160))
+  kt(h.includes('Ngày hoàn thành theo hợp đồng') && h.includes(lech(10).split('-').reverse().join('/')), 'ghi rõ ngày hoàn thành theo hợp đồng')
+  h = (datHan(lech(11)), await taiHan()); kt(h.includes('Hiện không có công trình nào') && !h.includes('Đường B'), 'còn 11 ngày: CHƯA cảnh báo')
+  h = (datHan(lech(3)), await taiHan()); kt(h.includes('CÒN 3 NGÀY'), 'còn 3 ngày: “CÒN 3 NGÀY”')
+  h = (datHan(lech(1)), await taiHan()); kt(h.includes('CÒN 1 NGÀY'), 'đếm ngược theo ngày: ngày mai hết hạn → “CÒN 1 NGÀY”')
+  h = (datHan(lech(0)), await taiHan()); kt(h.includes('HẾT HẠN HÔM NAY'), 'đến ngày: “HẾT HẠN HÔM NAY”')
+  h = (datHan(lech(-5)), await taiHan()); kt(h.includes('QUÁ HẠN 5 NGÀY'), 'quá hạn: “QUÁ HẠN 5 NGÀY”')
+  await a.screenshot({ path: OUT + '/10c-het-han-hop-dong.png', fullPage: true })
+  h = (datHan(lech(5), { ngay_ky_bb_ban_giao: lech(-1) }), await taiHan()); kt(!h.includes('Đường B'), 'đã ký biên bản bàn giao: không cảnh báo hết hạn')
+  h = (datHan(lech(5), { trang_thai: 'hoan_thanh' }), await taiHan()); kt(!h.includes('Đường B'), 'công trình đã hoàn thành: không cảnh báo hết hạn')
+  h = (datHan(null), await taiHan()); kt(!h.includes('Đường B'), 'chưa nhập ngày hoàn thành theo hợp đồng: không cảnh báo')
+  h = (datHan(lech(2), { luu_tru: true }), await taiHan()); kt(!h.includes('Đường B'), 'công trình đã lưu trữ: không cảnh báo hết hạn')
+  datHan('2026-09-30')
 
   await a.goto(URL + '#/bao-cao'); await a.getByText('Báo cáo theo năm').first().waitFor(); await a.waitForTimeout(1200)
   kt(await a.getByRole('cell', { name: 'Cầu A' }).isVisible(), 'báo cáo năm có Cầu A')
