@@ -5,6 +5,7 @@ import { CTProvider, useCT } from './lib/ct'
 import { layHangDoi, SU_KIEN } from './lib/hangdoi'
 import { Dang, Modal, Nut, ToastHost } from './components/ui'
 import CanhBaoWatcher from './components/CanhBao'
+import ThongBaoDay from './components/ThongBaoDay'
 import Login from './pages/Login'
 import TongQuan from './pages/TongQuan'
 import DanhSachCT from './pages/DanhSachCT'
@@ -33,6 +34,7 @@ function Khung() {
   const { ds, cur, chon } = useCT()
   const nav = useNavigate()
   const [them, setThem] = useState(false)
+  const [dayTB, setDayTB] = useState(false)
   const ct = cur ? `/ct/${cur}` : '/ct'
   const item = (to: string, bieu: string, ten: string) => (
     <NavLink to={to} end={to === '/'} className={({ isActive }) => `flex flex-1 flex-col items-center justify-center py-1.5 text-xs font-semibold ${isActive ? 'active' : ''}`}>
@@ -44,13 +46,13 @@ function Khung() {
       <TrangThaiMang />
       <header className="dau-trang sticky top-0 z-30 px-3 py-2">
         <div className="flex items-center gap-2">
-          <NavLink to="/" aria-label="Trang chủ"><img src="/logo.webp" alt="Logo" className="h-12 w-auto shrink-0" /></NavLink>
+          <NavLink to="/" aria-label="Trang chủ" className="logo-huy shrink-0"><img src="/logo.webp" alt="Logo" className="h-11 w-auto" /></NavLink>
           <div className="min-w-0 flex-1 leading-tight">
-            <div className="truncate text-[11px] font-semibold tracking-wide text-brand-2 sm:text-sm">CÔNG TY TNHH XÂY DỰNG</div>
-            <div className="truncate text-xl font-extrabold tracking-wide text-brand sm:text-2xl">TRƯỜNG LỘ</div>
-            <div className="hidden truncate text-xs italic text-gold sm:block">Kiến tạo hạ tầng - Vững bước tương lai</div>
+            <div className="truncate text-[11px] font-semibold tracking-[.12em] text-gold-2 sm:text-sm">CÔNG TY TNHH XÂY DỰNG</div>
+            <div className="truncate text-xl font-extrabold tracking-[.14em] text-white drop-shadow sm:text-2xl">TRƯỜNG LỘ</div>
+            <div className="hidden truncate text-xs italic text-white/75 sm:block">Kiến tạo hạ tầng - Vững bước tương lai</div>
           </div>
-          <button onClick={() => setThem(true)} className="min-h-11 max-w-[8.5rem] shrink-0 truncate rounded-xl border border-brand/25 bg-white px-3 text-sm font-semibold text-brand">{ho?.ho_ten || 'Tài khoản'} ▾</button>
+          <button onClick={() => setThem(true)} className="tk-nut min-h-11 max-w-[8.5rem] shrink-0 truncate rounded-xl px-3 text-sm font-semibold">{ho?.ho_ten || 'Tài khoản'} ▾</button>
         </div>
         <select value={cur ?? ''} onChange={(e) => { chon(e.target.value); nav(`/ct/${e.target.value}`) }}
           className="chon-ct mt-2 min-h-11 w-full rounded-xl px-3 font-semibold">
@@ -86,13 +88,12 @@ function Khung() {
             {isAdmin && <Nut mau="phu" className="w-full" onClick={() => nav('/vat-tu-mau')}>🧰 Nhập vật tư mẫu (dùng chung)</Nut>}
             {isAdmin && <Nut mau="phu" className="w-full" onClick={() => nav('/bao-cao')}>🗓️ Báo cáo theo năm</Nut>}
             {isAdmin && <Nut mau="phu" className="w-full" onClick={() => nav('/tai-khoan')}>👥 Quản lý tài khoản</Nut>}
-            <Nut mau="xam" className="w-full" onClick={async () => {
-              if ('Notification' in window) { const r = await Notification.requestPermission(); alert(r === 'granted' ? 'Đã bật thông báo' : 'Chưa bật thông báo') }
-            }}>🔔 Bật thông báo cảnh báo</Nut>
+            <Nut mau="xam" className="w-full" onClick={() => setDayTB(true)}>🔔 Thông báo đẩy cảnh báo vật tư</Nut>
             <Nut mau="do" className="w-full" onClick={() => { if (confirm('Đăng xuất?')) thoat() }}>Đăng xuất ({ho?.vai_tro === 'admin' ? 'Admin' : 'Kế toán'})</Nut>
           </div>
         </Modal>
       )}
+      {dayTB && <ThongBaoDay dong={() => setDayTB(false)} />}
       <CanhBaoWatcher />
     </div>
   )

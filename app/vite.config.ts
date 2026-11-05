@@ -8,6 +8,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'logo.webp', 'nen.webp'],
       manifest: {
@@ -25,7 +28,7 @@ export default defineConfig({
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,webp}'], navigateFallback: 'index.html' },
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,webp}'], maximumFileSizeToCacheInBytes: 4 * 1024 * 1024 },
     }),
   ],
   build: { chunkSizeWarningLimit: 900 },

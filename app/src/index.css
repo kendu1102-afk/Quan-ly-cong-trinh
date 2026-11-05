@@ -49,15 +49,24 @@ input, select, textarea { font-size: 17px; }
 .tieu-de::after { content: ""; position: absolute; left: 0; bottom: 0; width: 3.2rem; height: 3px; border-radius: 3px;
   background: linear-gradient(90deg, var(--color-gold), var(--color-gold-2)); }
 
-/* Thanh đầu trang và thanh điều hướng dưới */
-.dau-trang { background: rgba(255,255,255,.96); backdrop-filter: blur(8px); border-bottom: 3px solid var(--color-gold);
-  box-shadow: 0 6px 18px -10px rgba(10,42,102,.5); }
+/* Thanh đầu trang: xanh navy đậm chuyển sắc, ánh sáng vàng nhẹ, viền vàng phía dưới */
+.dau-trang {
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(245,197,66,.20) 0%, rgba(245,197,66,0) 45%),
+    linear-gradient(135deg, #061a45 0%, #0a2a66 48%, #1b4aa3 100%);
+  border-bottom: 3px solid var(--color-gold);
+  box-shadow: 0 10px 24px -10px rgba(6,26,69,.8);
+}
+.dau-trang .logo-huy { background: #fff; border-radius: .9rem; padding: .2rem; box-shadow: 0 0 0 2px var(--color-gold), 0 6px 14px -4px rgba(0,0,0,.5); }
+.dau-trang .tk-nut { background: rgba(255,255,255,.12); border: 1px solid rgba(245,197,66,.75); color: #fff; backdrop-filter: blur(4px); }
+.dau-trang .tk-nut:active { background: rgba(245,197,66,.3); }
 .thanh-duoi { background: linear-gradient(180deg, #123a85 0%, #0a2a66 100%); border-top: 2px solid var(--color-gold);
   box-shadow: 0 -8px 22px -10px rgba(10,42,102,.6); }
 .thanh-duoi a, .thanh-duoi button { color: rgba(255,255,255,.72); }
 .thanh-duoi a.active { color: var(--color-gold-2); }
 .thanh-duoi a.active span:first-child { filter: drop-shadow(0 0 6px rgba(245,197,66,.8)); }
-.chon-ct { background: linear-gradient(180deg, #1b4aa3, #0a2a66); color: #fff; border: 1.5px solid rgba(245,197,66,.8); }
+.chon-ct { background: rgba(255,255,255,.12); color: #fff; border: 1.5px solid rgba(245,197,66,.8); backdrop-filter: blur(4px); }
+.chon-ct option { color: #0a2a66; background: #fff; }
 
 .tab-ct { white-space: nowrap; border-radius: 9999px; padding: .6rem 1.1rem; font-weight: 600; background: rgba(255,255,255,.95);
   color: #0a2a66; border: 1px solid rgba(10,42,102,.18); }

@@ -1,15 +1,18 @@
-# Giai đoạn 2 – Trạng thái
+# Trạng thái kiểm thử
 
-## Đã kiểm chứng
-- CSDL + RLS + sao lưu/phục hồi: `bash supabase/tests/run.sh` (khoảng 85 kiểm tra, đạt).
-- Công thức: `cd app && npx vitest run` (đạt).
-- Đầu-cuối trên trình duyệt (Chromium giả lập điện thoại) với PostgreSQL + PostgREST thật:
-  `tests/e2e/start-infra.sh` rồi `NODE_PATH=$(npm root -g) node tests/e2e/e2e.cjs` → 64 đạt, 0 lỗi.
-  (Cần tải PostgREST v12.2.3 vào `tests/e2e/.postgrest-bin`.)
+| Bộ kiểm thử | Cách chạy | Kết quả gần nhất |
+|---|---|---|
+| CSDL + phân quyền + thông báo đẩy + sao lưu (PostgreSQL 16 thật) | `bash supabase/tests/run.sh` | 129 kiểm tra đạt |
+| Hàm máy chủ (mã thật, thư viện web-push thật, máy chủ đẩy HTTPS giả) | `cd tests/edge && npm i && node edge.test.mjs` | 25 đạt |
+| Công thức + mã hóa sao lưu | `cd app && npx vitest run` | 9 đạt |
+| Trình duyệt đầu-cuối (PostgreSQL + PostgREST thật) | `tests/e2e/start-infra.sh` rồi `NODE_PATH=$(npm root -g) node tests/e2e/e2e.cjs` | 94 đạt |
+| Service worker nhận push (Chromium thật) | `NODE_PATH=$(npm root -g) node tests/e2e/sw-push.cjs` | 8 đạt |
 
-## Phần e2e chỉ MÔ PHỎNG (cần kiểm chứng trên Supabase thật)
-Đăng nhập (GoTrue), kho ảnh (Storage), đồng bộ tức thời (Realtime), Edge Function tạo tài khoản, thông báo hệ thống.
+(e2e cần tải PostgREST v12.2.3 vào `tests/e2e/.postgrest-bin`.)
 
-## Chưa làm
-- Thông báo đẩy khi ứng dụng đã đóng hẳn.
-- Lịch sao lưu tự động + giữ Supabase không tạm dừng.
+## CHƯA kiểm chứng trên hệ thống thật (chỉ mô phỏng hoặc kiểm bằng Node)
+- Đăng nhập thật, kho ảnh thật, đồng bộ tức thời (Realtime).
+- Edge Function chạy trong môi trường Deno của Supabase (đã kiểm bằng Node với mã giống hệt).
+- pg_cron và pg_net trên Supabase (kiểm bằng mô phỏng pg_net).
+- Gửi push thật qua dịch vụ của Google/Apple tới điện thoại thật.
+- Lịch GitHub Actions chạy thật (kiểm bằng cách chạy đúng tập lệnh `scripts/sao-luu.mjs` trong máy).

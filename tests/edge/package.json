@@ -1,0 +1,1 @@
+{ "name": "kiem-thu-edge", "private": true, "type": "module", "scripts": { "test": "node edge.test.mjs" }, "dependencies": { "web-push": "3.6.7" } }

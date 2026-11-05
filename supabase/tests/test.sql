@@ -180,4 +180,99 @@ select t.eq((select count(*) from phieu_nhap_vt),3::bigint,'phục hồi lần 2
 select t.as_super();
 select t.eq(has_function_privilege('anon','public.xuat_sao_luu()','execute'),false,'người chưa đăng nhập không gọi được sao lưu');
 select t.eq(has_table_privilege('anon','public.chi_phi','select'),false,'người chưa đăng nhập không đọc được bảng');
+
+-- ===== 11. Thông báo đẩy (hàng đợi + gọi máy chủ) =====
+create function t.as_anon() returns void language plpgsql as $$
+begin reset role; perform set_config('request.jwt.claim.sub','', false); perform set_config('request.jwt.claim.role','anon', false); set role anon; end $$;
+grant execute on function t.as_anon() to anon; grant usage on schema t to anon;
+select t.as_super();
+insert into cau_hinh_bi_mat (khoa, gia_tri) values ('url_day_thong_bao','https://x.supabase.co/functions/v1/hyper-action'),('khoa_anon','ANON-KEY')
+  on conflict (khoa) do update set gia_tri = excluded.gia_tri;
+delete from thong_bao_day; delete from canh_bao_trang_thai; delete from net.goi;
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into vat_tu_mau (id,cong_trinh_id,ten,dvt,khoi_luong_dt,don_gia_dt) values ('22222222-0000-0000-0000-0000000000f1','11111111-0000-0000-0000-000000000001','Gạch','viên',10,1000);
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+insert into phieu_nhap_vt (client_id,cong_trinh_id,vat_tu_id,ngay,khoi_luong,don_gia,co_hoa_don) values ('cccccccc-0000-0000-0000-000000000001','11111111-0000-0000-0000-000000000001','22222222-0000-0000-0000-0000000000f1','2026-05-01',6,1000,true);
+select t.as_super(); select t.eq((select count(*) from thong_bao_day),0::bigint,'push: nhập 6/10 chưa đạt → chưa báo');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+insert into phieu_nhap_vt (client_id,cong_trinh_id,vat_tu_id,ngay,khoi_luong,don_gia,co_hoa_don) values ('cccccccc-0000-0000-0000-000000000002','11111111-0000-0000-0000-000000000001','22222222-0000-0000-0000-0000000000f1','2026-05-02',4,1000,true);
+select t.as_super();
+select t.eq((select count(*) from thong_bao_day),1::bigint,'push: nhập đủ 10/10 → có 1 thông báo ĐẠT');
+select t.eq((select tieu_de from thong_bao_day order by id desc limit 1),'Vật tư ĐÃ ĐẠT dự toán','push: tiêu đề thông báo ĐẠT');
+select t.eq((select count(*) from net.goi),1::bigint,'push: đã gọi máy chủ gửi thông báo 1 lần');
+select t.eq((select headers->>'x-ma-day' from net.goi limit 1),(select gia_tri from cau_hinh_bi_mat where khoa='ma_day_thong_bao'),'push: gửi kèm mã bí mật đúng');
+select t.eq((select (body->>'id')::bigint from net.goi limit 1),(select id from thong_bao_day order by id desc limit 1),'push: nội dung gửi kèm mã thông báo');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+update phieu_nhap_vt set ghi_chu='sửa ghi chú' where client_id='cccccccc-0000-0000-0000-000000000002';
+select t.as_super(); select t.eq((select count(*) from thong_bao_day),1::bigint,'push: sửa ghi chú, tình trạng không đổi → không báo lại');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+insert into phieu_nhap_vt (client_id,cong_trinh_id,vat_tu_id,ngay,khoi_luong,don_gia,co_hoa_don) values ('cccccccc-0000-0000-0000-000000000003','11111111-0000-0000-0000-000000000001','22222222-0000-0000-0000-0000000000f1','2026-05-03',2,1000,true);
+select t.as_super();
+select t.eq((select count(*) from thong_bao_day),2::bigint,'push: vượt 12/10 → thông báo VƯỢT');
+select t.eq((select tieu_de from thong_bao_day order by id desc limit 1),'Vật tư VƯỢT dự toán','push: tiêu đề VƯỢT');
+select t.eq((select noi_dung like '%VƯỢT 2 viên%' from thong_bao_day order by id desc limit 1),true,'push: nội dung ghi rõ vượt 2 viên');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+insert into phieu_nhap_vt (client_id,cong_trinh_id,vat_tu_id,ngay,khoi_luong,don_gia,co_hoa_don) values ('cccccccc-0000-0000-0000-000000000004','11111111-0000-0000-0000-000000000001','22222222-0000-0000-0000-0000000000f1','2026-05-04',1,1000,true);
+select t.as_super(); select t.eq((select count(*) from thong_bao_day),3::bigint,'push: vượt thêm (13/10) → báo tiếp');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+update phieu_nhap_vt set da_xoa=true where client_id='cccccccc-0000-0000-0000-000000000004';
+select t.as_super(); select t.eq((select count(*) from thong_bao_day),3::bigint,'push: xóa bớt làm giảm → không báo lại');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+update phieu_nhap_vt set da_xoa=true where client_id in ('cccccccc-0000-0000-0000-000000000003','cccccccc-0000-0000-0000-000000000002');
+select t.as_super(); select t.eq((select count(*) from canh_bao_trang_thai where vat_tu_id='22222222-0000-0000-0000-0000000000f1'),0::bigint,'push: về dưới dự toán → xóa mốc cảnh báo');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+insert into phieu_nhap_vt (client_id,cong_trinh_id,vat_tu_id,ngay,khoi_luong,don_gia,co_hoa_don) values ('cccccccc-0000-0000-0000-000000000005','11111111-0000-0000-0000-000000000001','22222222-0000-0000-0000-0000000000f1','2026-05-05',4,1000,true);
+select t.as_super(); select t.eq((select count(*) from thong_bao_day),4::bigint,'push: đạt lại dự toán lần nữa → báo lại');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+select t.fails('select * from cau_hinh_bi_mat','KT đọc kho cấu hình bí mật');
+select t.fails('select * from thong_bao_day','KT đọc hàng đợi thông báo');
+select t.fails('select * from canh_bao_trang_thai','KT đọc trạng thái cảnh báo');
+-- đăng ký thiết bị
+select t.as_user('00000000-0000-0000-0000-0000000000b1'); select dang_ky_thiet_bi('https://push.example/abc','P256','AUTH','Điện thoại KT1');
+select t.eq((select count(*) from thiet_bi_nhan_tin),1::bigint,'đăng ký thiết bị nhận thông báo');
+select t.as_user('00000000-0000-0000-0000-0000000000b2'); select t.eq((select count(*) from thiet_bi_nhan_tin),0::bigint,'KT2 không thấy thiết bị của KT1');
+select dang_ky_thiet_bi('https://push.example/abc','P256B','AUTHB','Máy dùng chung');   -- cùng máy đổi tài khoản
+select t.eq((select count(*) from thiet_bi_nhan_tin),1::bigint,'cùng một máy đổi tài khoản: chỉ còn 1 bản ghi (của người mới)');
+select t.as_user('00000000-0000-0000-0000-0000000000b1'); select t.eq((select count(*) from thiet_bi_nhan_tin),0::bigint,'KT1 không còn nhận trên máy đó');
+select huy_dang_ky_thiet_bi('https://push.example/abc');
+select t.as_super(); select t.eq((select count(*) from thiet_bi_nhan_tin),1::bigint,'KT1 không hủy được thiết bị của người khác');
+select t.as_anon(); select t.fails($q$select dang_ky_thiet_bi('x','y','z')$q$,'người chưa đăng nhập đăng ký thiết bị');
+
+-- ===== 12. Sao lưu tự động =====
+select t.as_super(); delete from sao_luu_tu_dong;
+select t.eq((select chay_sao_luu_tu_dong()->>'ket_qua'),'da_luu','sao lưu tự động lần 1 (chạy như tác vụ định kỳ)');
+select t.eq((select chay_sao_luu_tu_dong()->>'ket_qua'),'khong_doi','dữ liệu không đổi → không tạo bản trùng');
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into chi_phi (client_id,cong_trinh_id,ngay,ten_chi_phi,so_tien,chung_tu) values ('dddddddd-0000-0000-0000-000000000001','11111111-0000-0000-0000-000000000001','2026-06-01','Chi mới',1000,'hdkv');
+select t.eq((select chay_sao_luu_tu_dong()->>'ket_qua'),'da_luu','có thay đổi → tạo bản sao lưu mới');
+select t.eq((select count(*) from sao_luu_tu_dong),2::bigint,'có 2 bản sao lưu tự động');
+select t.eq((select (tom_tat->>'chi_phi')::int from sao_luu_tu_dong order by id desc limit 1),4,'tóm tắt ghi đúng số khoản chi');
+select t.eq((select lay_sao_luu_tu_dong((select max(id) from sao_luu_tu_dong))->>'phien_ban'),'1','Admin lấy được dữ liệu bản sao lưu');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+select t.eq((select count(*) from sao_luu_tu_dong),0::bigint,'KT không thấy danh sách sao lưu');
+select t.fails('select du_lieu from sao_luu_tu_dong','KT đọc nội dung sao lưu');
+select t.fails('select lay_sao_luu_tu_dong(1)','KT lấy dữ liệu sao lưu');
+select t.fails('select chay_sao_luu_tu_dong()','KT chạy sao lưu');
+select t.fails('select xem_ma_sao_luu()','KT xem mã sao lưu ngoài');
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into chi_phi (client_id,cong_trinh_id,ngay,ten_chi_phi,so_tien,chung_tu) values ('dddddddd-0000-0000-0000-000000000002','11111111-0000-0000-0000-000000000001','2026-06-02','Chi mới 2',1000,'hdkv');
+select chay_sao_luu_tu_dong(1);
+select t.eq((select count(*) from sao_luu_tu_dong),1::bigint,'giữ đúng số bản theo cấu hình (giữ 1 bản mới nhất)');
+-- sao lưu ngoài bằng mã bí mật
+select t.as_anon();
+select t.fails($q$select lay_sao_luu_ngoai('sai-ma')$q$,'lấy sao lưu ngoài với mã sai');
+select t.fails($q$select lay_sao_luu_ngoai(null)$q$,'lấy sao lưu ngoài không có mã');
+select t.as_super(); create temp table ma as select gia_tri from cau_hinh_bi_mat where khoa='ma_sao_luu'; grant all on ma to anon;
+select t.as_anon();
+select t.eq((select lay_sao_luu_ngoai((select gia_tri from ma))->>'phien_ban'),'1','lấy sao lưu ngoài với mã đúng (cho lịch GitHub)');
+select t.eq(has_function_privilege('anon','public.tao_du_lieu_sao_luu()','execute'),false,'hàm tạo dữ liệu nội bộ không gọi trực tiếp được');
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+select t.eq(length(xem_ma_sao_luu())>=32,true,'Admin xem được mã sao lưu ngoài');
+create temp table ma2 as select xem_ma_sao_luu() as m; select doi_ma_sao_luu();
+select t.eq((select xem_ma_sao_luu()) <> (select m from ma2),true,'đổi mã sao lưu ngoài');
+-- phục hồi không phát sinh thông báo giả
+select t.as_super(); create temp table dem as select count(*) as n from thong_bao_day; grant all on dem to authenticated;
+select t.as_user('00000000-0000-0000-0000-0000000000a1'); select phuc_hoi_sao_luu(lay_sao_luu_tu_dong((select max(id) from sao_luu_tu_dong)));
+select t.as_super(); select t.eq((select count(*) from thong_bao_day),(select n from dem),'phục hồi dữ liệu không sinh thông báo đẩy giả');
+
 \echo ===== TẤT CẢ KIỂM THỬ ĐẠT =====

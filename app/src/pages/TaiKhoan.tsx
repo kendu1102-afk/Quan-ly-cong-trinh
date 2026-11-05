@@ -7,21 +7,10 @@ import { fmtGio } from '../lib/tinh'
 import { Dang, Huy, Loi, Modal, Nut, Rong, The, TieuDe, Truong, o } from '../components/ui'
 import { thongBao } from '../lib/thongbao'
 import { taiVe } from '../lib/excel'
+import { goiHam } from '../lib/ham'
+import { giaiMa, laTepMaHoa } from '../lib/mahoa'
 
-// Địa chỉ (slug) của Edge Function trên Supabase. Trình soạn thảo web của Supabase có thể tự đặt slug khác tên hàm
-// (ví dụ "hyper-action"), nên cho phép đổi bằng biến VITE_HAM_QUAN_TRI.
-const HAM_QUAN_TRI = (import.meta.env.VITE_HAM_QUAN_TRI as string | undefined) || 'hyper-action'
-
-async function goiQuanTri(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke(HAM_QUAN_TRI, { body })
-  if (error) {
-    let m = error.message
-    try { const j = await (error as unknown as { context: Response }).context.json(); if (j?.loi) m = j.loi } catch { /* giữ nguyên */ }
-    throw new Error(m)
-  }
-  if (data?.loi) throw new Error(data.loi)
-  return data
-}
+const goiQuanTri = goiHam
 
 export default function TaiKhoan() {
   const { ho, taiLaiNguoi } = useAuth()
@@ -114,35 +103,101 @@ function FormQuyen({ u, hien, dong, xong }: { u: HoSo; hien: string[]; dong: () 
   )
 }
 
+type SL = { id: number; thoi_gian: string; kich_thuoc: number; tom_tat: Record<string, number> }
+const kb = (n: number) => (n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB')
+
 function SaoLuu() {
   const [ban, setBan] = useState(false)
+  const [ma, setMa] = useState<string | null>(null)
+  const q = useDuLieu<SL[]>(() => supabase.from('sao_luu_tu_dong').select('id,thoi_gian,kich_thuoc,tom_tat').order('id', { ascending: false }) as never, [], [], 'cache-sltd')
+  const dauTep = () => new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')
   const sao = async (ghiChu = '') => {
     const { data, error } = await supabase.rpc('xuat_sao_luu')
     if (error) throw error
-    const d = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')
-    taiVe(new Blob([JSON.stringify(data)], { type: 'application/json' }), `sao-luu-qlct-${ghiChu}${d}.json`)
+    taiVe(new Blob([JSON.stringify(data)], { type: 'application/json' }), `sao-luu-qlct-${ghiChu}${dauTep()}.json`)
     return data
   }
+  const phucHoi = async (j: unknown, tenNguon: string) => {
+    if (!confirm(`Phục hồi từ “${tenNguon}”?\n\nHệ thống sẽ TỰ ĐỘNG tải về bản sao lưu dữ liệu hiện tại trước, sau đó bổ sung/ghi đè dữ liệu theo bản này. Dữ liệu hiện có không nằm trong bản này sẽ được giữ nguyên.`)) return
+    setBan(true)
+    try {
+      await sao('truoc-khi-phuc-hoi-')
+      const { data, error } = await supabase.rpc('phuc_hoi_sao_luu', { data: j })
+      if (error) throw error
+      thongBao('Đã phục hồi: ' + JSON.stringify(data))
+    } catch (er) { thongBao('Phục hồi lỗi: ' + (er as Error).message, 'loi') }
+    setBan(false)
+  }
+  const chay = (f: () => Promise<void>) => async () => { setBan(true); try { await f() } catch (e) { thongBao((e as Error).message, 'loi') } setBan(false) }
   return (
-    <The className="space-y-2">
+    <The className="space-y-3">
       <h3 className="font-bold text-brand">Sao lưu và phục hồi dữ liệu</h3>
-      <p className="text-sm text-slate-600">Sao lưu gồm toàn bộ công trình, vật tư, chi phí, phân quyền (không gồm file ảnh hóa đơn và mật khẩu). Nên tải về và cất ở nơi an toàn mỗi tuần.</p>
-      <Nut className="w-full" disabled={ban} onClick={async () => { setBan(true); try { await sao(); thongBao('Đã tạo tệp sao lưu') } catch (e) { thongBao((e as Error).message, 'loi') } setBan(false) }}>💾 Sao lưu ngay (tải tệp về máy)</Nut>
+      <p className="text-sm text-slate-600">Sao lưu gồm toàn bộ công trình, vật tư, chi phí, phân quyền, danh mục vật tư (không gồm file ảnh hóa đơn và mật khẩu).</p>
+      <Nut className="w-full" disabled={ban} onClick={chay(async () => { await sao(); thongBao('Đã tạo tệp sao lưu') })}>💾 Sao lưu ngay (tải tệp về máy)</Nut>
       <label className="block">
-        <span className="flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-bad px-4 font-semibold text-bad">♻️ Phục hồi từ tệp sao lưu</span>
+        <span className="flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-bad px-4 text-center font-semibold text-bad">♻️ Phục hồi từ tệp sao lưu (thường hoặc đã mã hóa)</span>
         <input type="file" accept="application/json,.json" className="hidden" onChange={async (e) => {
           const f = e.target.files?.[0]; e.target.value = ''; if (!f) return
           try {
-            const j = JSON.parse(await f.text())
-            if (!confirm(`Phục hồi từ tệp “${f.name}”?\n\nHệ thống sẽ TỰ ĐỘNG tải về bản sao lưu dữ liệu hiện tại trước, sau đó bổ sung/ghi đè dữ liệu theo tệp. Dữ liệu hiện có không nằm trong tệp sẽ được giữ nguyên.`)) return
-            setBan(true); await sao('truoc-khi-phuc-hoi-')
-            const { data, error } = await supabase.rpc('phuc_hoi_sao_luu', { data: j })
-            if (error) throw error
-            thongBao('Đã phục hồi: ' + JSON.stringify(data))
-          } catch (er) { thongBao('Phục hồi lỗi: ' + (er as Error).message, 'loi') }
-          setBan(false)
+            let j: unknown = JSON.parse(await f.text())
+            if (laTepMaHoa(j)) {
+              const mk = prompt('Tệp này đã được mã hóa. Nhập MẬT KHẨU GIẢI MÃ (chính là bí mật MAT_KHAU_MA_HOA đã đặt trong GitHub):')
+              if (!mk) return
+              j = await giaiMa(j, mk)
+            }
+            await phucHoi(j, f.name)
+          } catch (er) { thongBao('Không đọc được tệp: ' + (er as Error).message, 'loi') }
         }} />
       </label>
+
+      <div className="border-t pt-3">
+        <h4 className="font-bold text-brand">Sao lưu tự động trong hệ thống</h4>
+        <p className="mb-2 text-sm text-slate-600">Mỗi đêm 03:00 hệ thống tự lưu một bản (bỏ qua nếu dữ liệu không đổi), giữ 30 bản mới nhất.</p>
+        <Nut mau="phu" className="mb-2 w-full" disabled={ban} onClick={chay(async () => {
+          const { data, error } = await supabase.rpc('chay_sao_luu_tu_dong'); if (error) throw error
+          thongBao((data as { ket_qua: string }).ket_qua === 'khong_doi' ? 'Dữ liệu chưa thay đổi so với bản gần nhất, không cần lưu thêm' : 'Đã tạo bản sao lưu tự động mới'); q.tai()
+        })}>⏱ Tạo bản sao lưu tự động ngay</Nut>
+        {q.loi && !q.cu && <Loi t="Chưa cài sao lưu tự động (cần chạy tệp SQL 04)." />}
+        {!q.data?.length && !q.loi && <Rong t="Chưa có bản sao lưu tự động nào" />}
+        <div className="space-y-2">
+          {q.data?.map((b) => (
+            <div key={b.id} className="rounded-xl bg-slate-50 p-2 text-sm">
+              <div className="font-semibold">{fmtGio(b.thoi_gian)} <span className="font-normal text-slate-500">· {kb(b.kich_thuoc)}</span></div>
+              <div className="text-slate-600">{b.tom_tat.cong_trinh} công trình · {b.tom_tat.phieu_nhap_vt} phiếu vật tư · {b.tom_tat.chi_phi} khoản chi</div>
+              <div className="mt-1 flex gap-2">
+                <Nut mau="xam" className="min-h-10 px-3 text-sm" disabled={ban} onClick={chay(async () => {
+                  const { data, error } = await supabase.rpc('lay_sao_luu_tu_dong', { p_id: b.id }); if (error) throw error
+                  taiVe(new Blob([JSON.stringify(data)], { type: 'application/json' }), `sao-luu-tu-dong-${b.thoi_gian.slice(0, 16).replace(/[:T]/g, '-')}.json`)
+                })}>Tải về</Nut>
+                <Nut mau="do" className="min-h-10 px-3 text-sm" disabled={ban} onClick={chay(async () => {
+                  const { data, error } = await supabase.rpc('lay_sao_luu_tu_dong', { p_id: b.id }); if (error) throw error
+                  await phucHoi(data, 'bản tự động ' + fmtGio(b.thoi_gian))
+                })}>Phục hồi từ bản này</Nut>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="border-t pt-3">
+        <h4 className="font-bold text-brand">Sao lưu ra ngoài qua GitHub (chống mất cả dự án)</h4>
+        <p className="mb-2 text-sm text-slate-600">GitHub mỗi ngày lấy một bản, <b>mã hóa</b> và cất 90 ngày; việc này cũng giữ cho Supabase miễn phí không bị tạm dừng. Cách cài ở tài liệu hướng dẫn. Bạn cần mã dưới đây để dán vào GitHub (bí mật <code>MA_SAO_LUU</code>).</p>
+        {ma === null ? (
+          <Nut mau="xam" className="w-full" disabled={ban} onClick={chay(async () => { const { data, error } = await supabase.rpc('xem_ma_sao_luu'); if (error) throw error; setMa(data as string) })}>Hiện mã sao lưu</Nut>
+        ) : (
+          <div className="space-y-2">
+            <input readOnly className={`${o} font-mono text-sm`} value={ma} onFocus={(e) => e.target.select()} />
+            <div className="flex gap-2">
+              <Nut mau="xam" className="flex-1" onClick={() => { navigator.clipboard?.writeText(ma); thongBao('Đã chép mã') }}>Chép mã</Nut>
+              <Nut mau="do" className="flex-1" disabled={ban} onClick={chay(async () => {
+                if (!confirm('Đổi mã sẽ làm lịch GitHub hiện tại ngừng chạy cho đến khi bạn dán mã mới vào GitHub. Tiếp tục?')) return
+                const { data, error } = await supabase.rpc('doi_ma_sao_luu'); if (error) throw error; setMa(data as string); thongBao('Đã đổi mã. Nhớ cập nhật bí mật MA_SAO_LUU trên GitHub.')
+              })}>Đổi mã</Nut>
+            </div>
+            <Nut mau="xam" className="w-full" onClick={() => setMa(null)}>Ẩn mã</Nut>
+          </div>
+        )}
+      </div>
     </The>
   )
 }

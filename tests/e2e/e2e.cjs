@@ -15,7 +15,7 @@ async function mo(browser, ten, opts = {}) {
   const ctx = await browser.newContext({ ...devices['Pixel 7'], deviceScaleFactor: 1, acceptDownloads: true, serviceWorkers: 'block', ...opts })
   const p = await ctx.newPage(); p.setDefaultTimeout(9000); TRANG.push([ten, p])
   p.on('pageerror', (e) => console.log('   [lỗi trang ' + ten + ']', String(e).slice(0, 150)))
-  p.on('dialog', (d) => d.accept(d.type() === 'prompt' ? d.defaultValue() : undefined))
+  p.on('dialog', (d) => d.accept(d.type() === 'prompt' ? (globalThis.MK_PROMPT ?? d.defaultValue()) : undefined))
   return { ctx, p, ten }
 }
 async function dangNhap(p, tk, mk = 'matkhau123') {
@@ -241,7 +241,47 @@ const chonVT = async (p, i, ten) => { await p.locator('button', { hasText: 'Ch�
   await toast(a, 'Đã phục hồi'); eq(sql('select count(*) from chi_phi'), 6, 'phục hồi đủ 6 khoản chi'); eq(sql('select count(*) from phieu_nhap_vt'), 3, 'phục hồi đủ 3 phiếu')
   eq(sql(`select kl_thuc_te from v_tong_hop_vat_tu where ten='Xi măng' and cong_trinh_id='${idA}'`), '100.000', 'số tổng hợp đúng sau phục hồi')
   eq(sql("select count(*) from tep_dinh_kem"), 1, 'thông tin ảnh đính kèm còn nguyên')
-  await a.getByRole('button', { name: /nhật ký hoạt động/ }).click(); kt(await a.getByText('Nhật ký hoạt động').first().isVisible(), 'mở được nhật ký hoạt động'); await a.screenshot({ path: OUT + '/12-nhat-ky.png' })
+  await a.getByRole('button', { name: /nhật ký hoạt động/ }).click(); kt(await a.getByText('Nhật ký hoạt động').first().isVisible(), 'mở được nhật ký hoạt động'); await a.screenshot({ path: OUT + '/12-nhat-ky.png' }); await a.locator('button[aria-label=Đóng]').click()
+
+
+  buoc('11b. Sao lưu tự động trong hệ thống + sao lưu ra ngoài (GitHub) + phục hồi tệp mã hóa')
+  sql('delete from sao_luu_tu_dong')
+  await a.goto(URL + '#/tai-khoan'); await a.getByText('Sao lưu tự động trong hệ thống').waitFor()
+  await a.getByRole('button', { name: /Tạo bản sao lưu tự động ngay/ }).click(); kt(await toast(a, 'Đã tạo bản sao lưu tự động mới'), 'tạo bản sao lưu tự động bằng nút bấm')
+  eq(sql('select count(*) from sao_luu_tu_dong'), 1, 'CSDL có 1 bản sao lưu tự động')
+  await a.getByRole('button', { name: /Tạo bản sao lưu tự động ngay/ }).click(); kt(await toast(a, 'chưa thay đổi'), 'dữ liệu không đổi → không tạo bản trùng')
+  kt(await a.getByText(/công trình · .* phiếu vật tư/).first().waitFor({ timeout: 5000 }).then(() => true).catch(() => false), 'danh sách bản sao lưu hiển thị tóm tắt')
+  await a.screenshot({ path: OUT + '/11b-sao-luu-tu-dong.png', fullPage: true })
+  const [dlA] = await Promise.all([a.waitForEvent('download'), a.getByRole('button', { name: 'Tải về', exact: true }).first().click()]); kt(dlA.suggestedFilename().startsWith('sao-luu-tu-dong'), 'tải về bản sao lưu tự động')
+  // mã sao lưu ngoài
+  await a.getByRole('button', { name: 'Hiện mã sao lưu' }).click(); const maHienThi = await a.locator('input[readonly]').inputValue()
+  eq(maHienThi, sql("select gia_tri from cau_hinh_bi_mat where khoa='ma_sao_luu'"), 'Admin xem được mã sao lưu ngoài, khớp với CSDL')
+  // chạy ĐÚNG tập lệnh scripts/sao-luu.mjs như GitHub Actions sẽ chạy
+  const thuMuc = fs.mkdtempSync(path.join(OUT, 'gh-')); const env = { ...process.env, SUPABASE_URL: 'http://localhost:54321', SUPABASE_ANON_KEY: 'anon', MA_SAO_LUU: maHienThi, MAT_KHAU_MA_HOA: 'mat-khau-ma-hoa-dai-1' }
+  const kqScript = execFileSync('node', [path.resolve(__dirname, '../../scripts/sao-luu.mjs')], { cwd: thuMuc, env, encoding: 'utf8' }); kt(/Đã sao lưu 2 công trình/.test(kqScript), 'tập lệnh GitHub lấy được sao lưu qua mã bí mật: ' + kqScript.trim())
+  const tepMaHoa = fs.readdirSync(path.join(thuMuc, 'sao-luu'))[0]; const noiDungMaHoa = fs.readFileSync(path.join(thuMuc, 'sao-luu', tepMaHoa), 'utf8')
+  kt(tepMaHoa.endsWith('.ma-hoa.json') && !noiDungMaHoa.includes('Cầu A') && !noiDungMaHoa.includes('Xi măng'), 'tệp sao lưu ngoài đã mã hóa: không lộ tên công trình/vật tư')
+  let saiMa = false; try { execFileSync('node', [path.resolve(__dirname, '../../scripts/sao-luu.mjs')], { cwd: thuMuc, env: { ...env, MA_SAO_LUU: 'sai-ma' }, stdio: 'pipe' }) } catch { saiMa = true }; kt(saiMa, 'tập lệnh GitHub báo lỗi khi sai mã bí mật')
+  // mô phỏng sự cố → phục hồi từ bản tự động trong hệ thống
+  sql('delete from chi_phi; delete from phieu_nhap_vt;'); eq(sql('select count(*) from chi_phi'), 0, 'giả lập sự cố lần 2')
+  const dlPre2 = a.waitForEvent('download')
+  await a.getByRole('button', { name: 'Phục hồi từ bản này' }).first().click(); await dlPre2
+  await toast(a, 'Đã phục hồi'); eq(sql('select count(*) from chi_phi'), 6, 'phục hồi từ bản tự động: đủ 6 khoản chi'); eq(sql('select count(*) from phieu_nhap_vt'), 3, 'phục hồi từ bản tự động: đủ 3 phiếu')
+  // mô phỏng sự cố lần 3 → phục hồi từ tệp MÃ HÓA do GitHub tạo (nhập mật khẩu)
+  sql('delete from chi_phi; delete from phieu_nhap_vt;'); globalThis.MK_PROMPT = 'mat-khau-ma-hoa-dai-1'
+  const dlPre3 = a.waitForEvent('download'); await a.locator('label:has-text("Phục hồi từ tệp sao lưu") input').setInputFiles(path.join(thuMuc, 'sao-luu', tepMaHoa)); await dlPre3
+  await toast(a, 'Đã phục hồi'); eq(sql('select count(*) from chi_phi'), 6, 'phục hồi từ tệp mã hóa của GitHub: đủ 6 khoản chi')
+  eq(sql("select kl_thuc_te from v_tong_hop_vat_tu where ten='Xi măng' and cong_trinh_id='${idA}'".replace('${idA}', idA)), '100.000', 'số tổng hợp đúng sau phục hồi từ tệp mã hóa')
+  sql('delete from chi_phi; delete from phieu_nhap_vt;'); globalThis.MK_PROMPT = 'sai-mat-khau-khac'
+  await a.locator('label:has-text("Phục hồi từ tệp sao lưu") input').setInputFiles(path.join(thuMuc, 'sao-luu', tepMaHoa)); kt(await toast(a, 'Sai mật khẩu'), 'sai mật khẩu giải mã: báo lỗi, không phục hồi'); eq(sql('select count(*) from chi_phi'), 0, 'sai mật khẩu: dữ liệu không bị thay đổi')
+  globalThis.MK_PROMPT = 'mat-khau-ma-hoa-dai-1'; const dlPre4 = a.waitForEvent('download'); await a.locator('label:has-text("Phục hồi từ tệp sao lưu") input').setInputFiles(path.join(thuMuc, 'sao-luu', tepMaHoa)); await dlPre4; await toast(a, 'Đã phục hồi'); eq(sql('select count(*) from chi_phi'), 6, 'khôi phục lại dữ liệu cho các bước sau')
+  await a.getByRole('button', { name: 'Hiện mã sao lưu' }).waitFor().catch(() => {})
+
+  buoc('11c. Màn hình thông báo đẩy')
+  await a.goto(URL + '#/'); await a.getByRole('button', { name: /Thêm/ }).click(); await a.getByRole('button', { name: /Thông báo đẩy cảnh báo vật tư/ }).click()
+  kt(await a.getByText(/Chưa bật|không hỗ trợ|CHẶN/).first().waitFor({ timeout: 5000 }).then(() => true).catch(() => false), 'mở được màn hình thông báo đẩy, hiển thị trạng thái')
+  await a.screenshot({ path: OUT + '/11c-thong-bao-day.png' })
+  await a.locator('button[aria-label=Đóng]').click()
 
   buoc('12. Cài lại ứng dụng / đổi điện thoại (bộ nhớ trình duyệt trống)')
   const K3 = await mo(browser, 'kt1-may-moi'); await dangNhap(K3.p, 'kt1'); await K3.p.goto(`${URL}#/ct/${idA}/th-cp`); await K3.p.waitForTimeout(1200)

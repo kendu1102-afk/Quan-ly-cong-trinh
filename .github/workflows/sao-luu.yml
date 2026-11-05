@@ -1,0 +1,32 @@
+name: Sao lưu tự động và giữ Supabase hoạt động
+
+on:
+  schedule:
+    - cron: '30 19 * * *'     # 02:30 giờ Việt Nam mỗi ngày
+  workflow_dispatch:           # cho phép bấm chạy thử bằng tay
+
+permissions:
+  contents: read
+
+jobs:
+  sao-luu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Lấy sao lưu từ Supabase và mã hóa
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          MA_SAO_LUU: ${{ secrets.MA_SAO_LUU }}
+          MAT_KHAU_MA_HOA: ${{ secrets.MAT_KHAU_MA_HOA }}
+        run: node scripts/sao-luu.mjs
+      - name: Lưu bản sao lưu (giữ 90 ngày)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sao-luu-${{ github.run_id }}
+          path: sao-luu/*.ma-hoa.json
+          retention-days: 90
+          if-no-files-found: error
