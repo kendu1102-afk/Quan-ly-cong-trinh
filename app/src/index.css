@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@theme {
+  --color-brand: #0f3d63;
+  --color-brand-2: #1c5a8c;
+  --color-gold: #f2b705;
+  --color-ok: #15803d;
+  --color-warn: #b45309;
+  --color-bad: #b91c1c;
+  --font-sans: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+html, body, #root { min-height: 100%; }
+body { background: #f4f6f9; color: #1e293b; font-size: 17px; -webkit-tap-highlight-color: transparent; }
+input, select, textarea { font-size: 17px; }
+.num { font-variant-numeric: tabular-nums; }
