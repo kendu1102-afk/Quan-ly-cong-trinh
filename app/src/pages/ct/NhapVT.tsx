@@ -55,7 +55,7 @@ export default function NhapVT({ ct }: { ct: string }) {
   return (
     <div className="space-y-4">
       <TieuDe>Nhập vật tư hàng ngày</TieuDe>
-      {!ds.length ? <Rong t="Công trình chưa có danh sách vật tư mẫu. Admin cần nhập ở thẻ “Vật tư mẫu” trước." /> : (
+      {!ds.length ? <Rong t="Công trình chưa có danh sách vật tư theo dự toán. Admin cần nhập ở thẻ “Vật tư theo dự toán” trước." /> : (
         <The className="space-y-4">
           <Truong nhan="Ngày nhập"><input type="date" className={o} value={ngay} onChange={(e) => setNgay(e.target.value)} /></Truong>
           {dongs.map((d, i) => {

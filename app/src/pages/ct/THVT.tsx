@@ -18,7 +18,7 @@ export default function THVT({ ct }: { ct: string }) {
   const [chiTiet, setChiTiet] = useState<{ tieuDe: string; loc: Loc } | null>(null)
   if (q.dangTai) return <Dang />
   const ds = q.data ?? []
-  if (!ds.length) return <Rong t="Chưa có vật tư mẫu hoặc chưa nhập vật tư." />
+  if (!ds.length) return <Rong t="Chưa có vật tư theo dự toán hoặc chưa nhập vật tư." />
   const T = (k: keyof TH) => tong(ds.map((x) => so(x[k])))
   const bd = ds.map((x) => ({ ...x, ten: x.ten, dt: so(x.khoi_luong_dt), tt: so(x.kl_thuc_te), con: Math.max(so(x.kl_con_lai), 0), vuot: so(x.kl_vuot), vtId: x.vat_tu_id }))
   const mo = (tieuDe: string, loc: Loc) => setChiTiet({ tieuDe, loc })

@@ -11,6 +11,7 @@ import DanhSachCT from './pages/DanhSachCT'
 import TrangCT from './pages/TrangCT'
 import BaoCaoNam from './pages/BaoCaoNam'
 import TaiKhoan from './pages/TaiKhoan'
+import DanhMucVT from './pages/DanhMucVT'
 
 function TrangThaiMang() {
   const [on, setOn] = useState(navigator.onLine); const [cho, setCho] = useState(0)
@@ -64,6 +65,7 @@ function Khung() {
           <Route path="/ct/:id" element={<Navigate to="thong-tin" replace />} />
           <Route path="/ct/:id/:tab" element={<TrangCT />} />
           <Route path="/bao-cao" element={isAdmin ? <BaoCaoNam /> : <Navigate to="/" />} />
+          <Route path="/vat-tu-mau" element={isAdmin ? <DanhMucVT /> : <Navigate to="/" />} />
           <Route path="/tai-khoan" element={isAdmin ? <TaiKhoan /> : <Navigate to="/" />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
@@ -81,6 +83,7 @@ function Khung() {
             <Nut mau="phu" className="w-full" onClick={() => nav(`${ct}/th-vt`)}>📊 Tổng hợp vật tư</Nut>
             <Nut mau="phu" className="w-full" onClick={() => nav(`${ct}/th-cp`)}>📈 Tổng hợp chi phí</Nut>
             <Nut mau="phu" className="w-full" onClick={() => nav(`${ct}/tai-chinh`)}>💰 Tài chính công trình</Nut>
+            {isAdmin && <Nut mau="phu" className="w-full" onClick={() => nav('/vat-tu-mau')}>🧰 Nhập vật tư mẫu (dùng chung)</Nut>}
             {isAdmin && <Nut mau="phu" className="w-full" onClick={() => nav('/bao-cao')}>🗓️ Báo cáo theo năm</Nut>}
             {isAdmin && <Nut mau="phu" className="w-full" onClick={() => nav('/tai-khoan')}>👥 Quản lý tài khoản</Nut>}
             <Nut mau="xam" className="w-full" onClick={async () => {

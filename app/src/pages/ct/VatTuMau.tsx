@@ -3,10 +3,11 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
 import { useDuLieu } from '../../lib/dulieu'
 import { docSo, fmtSo, fmtTien, so, tong } from '../../lib/tinh'
-import { Dang, Loi, Modal, Nut, Rong, The, TieuDe, Truong, o } from '../../components/ui'
+import { ChonTim, Dang, Loi, Modal, Nut, Rong, The, TieuDe, Truong, o } from '../../components/ui'
 import { thongBao } from '../../lib/thongbao'
 import { docVatTuExcel, mauVatTu, xuatExcel } from '../../lib/excel'
 import { useVatTu } from './NhapVT'
+import { useDanhMuc, type DanhMuc } from '../DanhMucVT'
 
 type Mau = { id?: string; ten: string; dvt: string; khoi_luong_dt: number; don_gia_dt: number; version?: number }
 
@@ -14,6 +15,7 @@ export default function VatTuMau({ ct }: { ct: string }) {
   const { isAdmin } = useAuth()
   const q = useVatTu(ct)
   const full = useVatTuFull(ct)
+  const dm = useDanhMuc()
   const [q2, setQ] = useState(''); const [sua, setSua] = useState<Mau | null>(null); const [xem, setXem] = useState<{ ten: string; dvt: string; khoi_luong_dt: number; don_gia_dt: number; dong: number; loi?: string }[] | null>(null)
   const file = useRef<HTMLInputElement>(null)
   const bo = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd')
@@ -49,7 +51,7 @@ export default function VatTuMau({ ct }: { ct: string }) {
         </div>
       ) : <div className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">Danh sách này do Admin quản lý. Kế toán chỉ xem.</div>}
       <input className={o} placeholder="🔍 Tìm vật tư…" value={q2} onChange={(e) => setQ(e.target.value)} />
-      {!ds.length && <Rong t="Chưa có vật tư mẫu" />}
+      {!ds.length && <Rong t="Chưa có vật tư theo dự toán" />}
       {ds.map((x) => (
         <The key={x.id}><div className="flex items-start justify-between gap-2">
           <div><b className="text-brand">{x.ten}</b><div className="num text-sm text-slate-600">{fmtSo(x.khoi_luong_dt)} {x.dvt} × {fmtTien(x.don_gia_dt)}</div><div className="num font-semibold">Thành tiền DT: {fmtTien(so(x.khoi_luong_dt) * so(x.don_gia_dt))} đ</div></div>
@@ -62,7 +64,7 @@ export default function VatTuMau({ ct }: { ct: string }) {
         </div></The>
       ))}
       {!!ds.length && <div className="text-right font-semibold num">Tổng dự toán vật tư: {fmtTien(tong((full.data ?? []).map((x) => so(x.khoi_luong_dt) * so(x.don_gia_dt))))} đ</div>}
-      {sua && <FormMau m={sua} ct={ct} dong={() => setSua(null)} xong={() => { setSua(null); full.tai() }} />}
+      {sua && <FormMau m={sua} ct={ct} dm={dm.data ?? []} dong={() => setSua(null)} xong={() => { setSua(null); full.tai() }} />}
       {xem && (
         <Modal tieuDe={`Xem trước: ${xem.length} dòng`} dong={() => setXem(null)}>
           <p className="mb-2 text-sm text-slate-600">Vật tư trùng tên sẽ được cập nhật. Dòng lỗi sẽ bị bỏ qua.</p>
@@ -78,9 +80,10 @@ function useVatTuFull(ct: string) {
   return useDuLieu<Mau[]>(() => supabase.from('vat_tu_mau').select('id,ten,dvt,khoi_luong_dt,don_gia_dt,version').eq('cong_trinh_id', ct).order('ten') as never, [ct], ['vat_tu_mau'], 'cache-vtm-full-' + ct)
 }
 
-function FormMau({ m, ct, dong, xong }: { m: Mau; ct: string; dong: () => void; xong: () => void }) {
+function FormMau({ m, ct, dm, dong, xong }: { m: Mau; ct: string; dm: DanhMuc[]; dong: () => void; xong: () => void }) {
   const [f, setF] = useState({ ten: m.ten, dvt: m.dvt, kl: String(m.khoi_luong_dt || ''), dg: String(m.don_gia_dt || '') })
-  const [loi, setLoi] = useState('')
+  const [loi, setLoi] = useState(''); const [luuDM, setLuuDM] = useState(true); const [tuDM, setTuDM] = useState('')
+  const coTrongDM = dm.some((x) => x.ten.trim().toLowerCase() === f.ten.trim().toLowerCase())
   const luu = async () => {
     const kl = docSo(f.kl || '0'), dg = docSo(f.dg || '0')
     if (!f.ten.trim() || !f.dvt.trim()) return setLoi('Nhập tên và đơn vị tính')
@@ -89,16 +92,27 @@ function FormMau({ m, ct, dong, xong }: { m: Mau; ct: string; dong: () => void; 
     const r = m.id ? await supabase.from('vat_tu_mau').update(row, { count: 'exact' }).eq('id', m.id).eq('version', m.version!) : await supabase.from('vat_tu_mau').insert({ ...row, cong_trinh_id: ct })
     if (r.error) return setLoi(r.error.message.includes('duplicate') ? 'Đã có vật tư trùng tên' : r.error.message)
     if (m.id && r.count === 0) return setLoi('Dữ liệu vừa được người khác sửa, đóng lại và mở lại.')
+    if (!m.id && luuDM && !coTrongDM) await supabase.from('danh_muc_vat_tu').upsert({ ten: row.ten, dvt: row.dvt, don_gia: dg }, { onConflict: 'ten', ignoreDuplicates: true })
     thongBao('Đã lưu vật tư'); xong()
   }
   return (
     <Modal tieuDe={m.id ? 'Sửa vật tư mẫu' : 'Thêm vật tư mẫu'} dong={dong}>
       <div className="space-y-3">
+        {!m.id && (
+          <Truong nut nhan="Chọn nhanh từ danh mục vật tư mẫu (gõ để tìm)">
+            <ChonTim ds={dm} gt={tuDM} nhan={(x) => x.ten} placeholder={dm.length ? 'Chọn từ danh mục vật tư mẫu…' : 'Danh mục đang trống (nhập ở menu “Nhập vật tư mẫu”)'}
+              hienThi={(x) => <span>{x.ten} <span className="text-slate-500">({x.dvt})</span></span>}
+              doi={(id) => { const x = dm.find((d) => d.id === id)!; setTuDM(id); setF({ ...f, ten: x.ten, dvt: x.dvt, dg: x.don_gia ? String(x.don_gia) : f.dg }) }} />
+          </Truong>
+        )}
         <Truong nhan="Tên vật tư"><input className={o} value={f.ten} onChange={(e) => setF({ ...f, ten: e.target.value })} /></Truong>
         <Truong nhan="Đơn vị tính"><input className={o} value={f.dvt} onChange={(e) => setF({ ...f, dvt: e.target.value })} placeholder="m3, tấn, kg, cái…" /></Truong>
         <Truong nhan="Khối lượng theo dự toán"><input className={o} inputMode="decimal" value={f.kl} onChange={(e) => setF({ ...f, kl: e.target.value })} /></Truong>
         <Truong nhan="Đơn giá dự toán"><input className={o} inputMode="decimal" value={f.dg} onChange={(e) => setF({ ...f, dg: e.target.value })} /></Truong>
         <div>Thành tiền dự toán: <b className="num text-brand">{fmtTien((docSo(f.kl || '0') || 0) * (docSo(f.dg || '0') || 0))}</b> đ</div>
+        {!m.id && f.ten.trim() && !coTrongDM && (
+          <label className="flex items-center gap-3 rounded-xl bg-amber-50 p-3 text-sm"><input type="checkbox" className="h-6 w-6" checked={luuDM} onChange={(e) => setLuuDM(e.target.checked)} />Lưu vật tư này vào danh mục vật tư mẫu chung để công trình khác dùng lại</label>
+        )}
         <Loi t={loi} /><Nut className="w-full" onClick={luu}>Lưu</Nut>
       </div>
     </Modal>

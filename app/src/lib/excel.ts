@@ -53,3 +53,26 @@ export async function mauVatTu() {
     dong: [{ a: 'Xi măng PC40', b: 'tấn', c: 100, d: 1500000 }],
   }])
 }
+
+/** Danh mục vật tư mẫu dùng chung: cột A tên, B đơn vị, C đơn giá tham khảo (dòng có chữ "Tên…" là tiêu đề) */
+export async function docDanhMucExcel(f: File) {
+  const ExcelJS = (await import('exceljs')).default
+  const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await f.arrayBuffer())
+  const ws = wb.worksheets[0]; const kq: { ten: string; dvt: string; don_gia: number; dong: number }[] = []
+  const txt = (v: unknown) => String((v as { text?: string; result?: unknown })?.text ?? (v as { result?: unknown })?.result ?? v ?? '').trim()
+  const num = (v: unknown) => { const x = (v as { result?: unknown })?.result ?? v; if (x === null || x === undefined || x === '') return 0; const n = typeof x === 'number' ? x : Number(String(x).replace(/\./g, '').replace(',', '.')); return Number.isFinite(n) ? n : NaN }
+  let batDau = 1
+  ws.eachRow((r, i) => { if (batDau === 1 && txt(r.getCell(1).value).toLowerCase().startsWith('tên')) batDau = i })
+  ws.eachRow((r, i) => {
+    if (i <= batDau) return
+    const ten = txt(r.getCell(1).value); if (!ten) return
+    kq.push({ ten, dvt: txt(r.getCell(2).value), don_gia: num(r.getCell(3).value), dong: i })
+  })
+  return kq
+}
+export async function mauDanhMuc() {
+  await xuatExcel('mau-danh-muc-vat-tu', 'Mẫu danh mục vật tư (xóa dòng ví dụ trước khi nhập)', [{
+    ten: 'Danh mục', cot: [{ tieuDe: 'Tên vật tư', khoa: 'a', rong: 32 }, { tieuDe: 'Đơn vị tính', khoa: 'b' }, { tieuDe: 'Đơn giá tham khảo', khoa: 'c' }],
+    dong: [{ a: 'Xi măng PC40', b: 'tấn', c: 1500000 }],
+  }])
+}

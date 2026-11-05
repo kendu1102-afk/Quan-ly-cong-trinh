@@ -138,6 +138,24 @@ select t.eq(t.cnt($q$update profiles set bi_khoa=false where email='kt2@x'$q$),1
 select t.eq(t.cnt($q$update profiles set vai_tro='ketoan' where email='admin2@x'$q$),1::bigint,'hạ admin2 khi còn admin1');
 select t.fails($q$update profiles set vai_tro='ketoan' where email='admin@x'$q$,'hạ Admin cuối cùng');
 
+-- 9b. Danh mục vật tư mẫu dùng chung
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into danh_muc_vat_tu (ten,dvt,don_gia) values ('Xi măng PC40','tấn',1500000),('Thép phi 10','kg',18000);
+select t.eq((select count(*) from danh_muc_vat_tu),2::bigint,'Admin thêm 2 vật tư vào danh mục chung');
+select t.fails($q$insert into danh_muc_vat_tu (ten,dvt) values ('Xi măng PC40','tấn')$q$,'trùng tên trong danh mục');
+select t.fails($q$insert into danh_muc_vat_tu (ten,dvt,don_gia) values ('Âm','kg',-1)$q$,'đơn giá âm');
+select t.eq(t.cnt($q$update danh_muc_vat_tu set don_gia=19000 where ten='Thép phi 10'$q$),1::bigint,'Admin sửa đơn giá tham khảo');
+select t.eq((select version from danh_muc_vat_tu where ten='Thép phi 10'),2,'danh mục có số phiên bản');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+select t.eq((select count(*) from danh_muc_vat_tu),2::bigint,'Kế toán xem được danh mục chung');
+select t.fails($q$insert into danh_muc_vat_tu (ten,dvt) values ('Lén','kg')$q$,'Kế toán thêm vào danh mục');
+select t.eq(t.cnt('update danh_muc_vat_tu set don_gia=1'),0::bigint,'Kế toán sửa danh mục (0 dòng)');
+select t.eq(t.cnt('delete from danh_muc_vat_tu'),0::bigint,'Kế toán xóa danh mục (0 dòng)');
+select t.as_super();
+select t.eq(has_table_privilege('anon','public.danh_muc_vat_tu','select'),false,'người chưa đăng nhập không đọc được danh mục');
+select t.as_user('00000000-0000-0000-0000-0000000000a1');
+select t.eq((select count(*) from nhat_ky where bang='danh_muc_vat_tu'),3::bigint,'nhật ký ghi thao tác trên danh mục');
+
 -- 10. Sao lưu / phục hồi
 select t.as_user('00000000-0000-0000-0000-0000000000b1');
 select t.fails('select xuat_sao_luu()','KT sao lưu');
@@ -148,12 +166,13 @@ grant all on bk to authenticated;
 select t.eq(jsonb_array_length((select j->'phieu_nhap_vt' from bk)),3,'sao lưu có 3 phiếu');
 select t.as_super();
 -- mô phỏng sự cố: mất dữ liệu
-delete from chi_phi; delete from phieu_nhap_vt;
+delete from chi_phi; delete from phieu_nhap_vt; delete from danh_muc_vat_tu;
 select t.eq((select count(*) from phieu_nhap_vt),0::bigint,'sự cố: mất phiếu');
 select t.as_user('00000000-0000-0000-0000-0000000000a1');
 select phuc_hoi_sao_luu((select j from bk));
 select t.eq((select count(*) from phieu_nhap_vt),3::bigint,'phục hồi 3 phiếu');
 select t.eq((select count(*) from chi_phi),3::bigint,'phục hồi 3 khoản chi');
+select t.eq((select count(*) from danh_muc_vat_tu),2::bigint,'phục hồi danh mục vật tư chung');
 select t.eq((select kl_thuc_te from v_tong_hop_vat_tu where ten='Xi măng'),100::numeric,'số tổng hợp đúng sau phục hồi');
 select t.eq((select created_by from phieu_nhap_vt where client_id='aaaaaaaa-0000-0000-0000-000000000001'),'00000000-0000-0000-0000-0000000000b1'::uuid,'giữ nguyên người nhập gốc');
 select phuc_hoi_sao_luu((select j from bk));

@@ -20,7 +20,7 @@ export default function TongQuan() {
   const tiles: [string, string, string][] = [
     ['📊', 'Tổng quan', '/'], ['🏗️', 'Danh sách công trình', '/ct'], ['🧱', 'Nhập vật tư', `${base}/nhap-vt`], ['💵', 'Nhập chi phí', `${base}/chi-phi`],
     ['📦', 'Tổng hợp vật tư', `${base}/th-vt`], ['📈', 'Tổng hợp chi phí', `${base}/th-cp`],
-    ...(isAdmin ? [['🗓️', 'Báo cáo theo năm', '/bao-cao'], ['👥', 'Quản lý tài khoản', '/tai-khoan']] as [string, string, string][] : []),
+    ...(isAdmin ? [['🧰', 'Nhập vật tư mẫu', '/vat-tu-mau'], ['🗓️', 'Báo cáo theo năm', '/bao-cao'], ['👥', 'Quản lý tài khoản', '/tai-khoan']] as [string, string, string][] : []),
   ]
   return (
     <div className="space-y-4">

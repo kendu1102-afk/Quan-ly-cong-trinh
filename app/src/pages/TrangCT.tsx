@@ -13,7 +13,7 @@ import THVT from './ct/THVT'
 import THCP from './ct/THCP'
 import TaiChinh from './ct/TaiChinh'
 
-const TABS = [['thong-tin', 'Thông tin'], ['vat-tu-mau', 'Vật tư mẫu'], ['nhap-vt', 'Nhập vật tư'], ['chi-phi', 'Chi phí'], ['th-vt', 'TH vật tư'], ['th-cp', 'TH chi phí'], ['tai-chinh', 'Tài chính']] as const
+const TABS = [['thong-tin', 'Thông tin'], ['vat-tu-mau', 'Vật tư theo dự toán'], ['nhap-vt', 'Nhập vật tư'], ['chi-phi', 'Chi phí'], ['th-vt', 'TH vật tư'], ['th-cp', 'TH chi phí'], ['tai-chinh', 'Tài chính']] as const
 
 export default function TrangCT() {
   const { id, tab } = useParams()

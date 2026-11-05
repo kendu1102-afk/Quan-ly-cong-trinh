@@ -49,12 +49,27 @@ const chonVT = async (p, i, ten) => { await p.locator('button', { hasText: 'Ch�
   eq(sql("select gia_tri_hop_dong from cong_trinh where ten='Cầu A'"), 1000000000, 'giá trị hợp đồng "1.000.000.000" được đọc đúng')
   const idA = sql("select id from cong_trinh where ten='Cầu A'"), idB = sql("select id from cong_trinh where ten='Đường B'")
 
-  buoc('3. Vật tư mẫu: thêm tay + nhập Excel')
+  buoc('3. Danh mục vật tư mẫu dùng chung + vật tư theo dự toán (chọn nhanh từ danh mục, thêm tay, nhập Excel)')
+  await a.goto(URL + '#/vat-tu-mau'); await a.getByText('dùng chung cho tất cả công trình').waitFor()
+  await a.getByRole('button', { name: '＋ Thêm vật tư' }).click(); await a.getByLabel('Tên vật tư').fill('Xi măng'); await a.getByLabel('Đơn vị tính').fill('tấn'); await a.getByLabel(/Đơn giá tham khảo/).fill('1500000')
+  await a.getByRole('button', { name: 'Lưu', exact: true }).click(); await a.getByText('Xi măng').first().waitFor()
+  eq(sql("select count(*) from danh_muc_vat_tu"), 1, 'thêm vật tư vào danh mục chung qua giao diện')
+  await a.screenshot({ path: OUT + '/02a-danh-muc-vat-tu.png' })
   await a.goto(`${URL}#/ct/${idA}/vat-tu-mau`)
-  for (const [t, d, k, g] of [['Xi măng', 'tấn', '100', '1500000'], ['Cát vàng', 'm3', '50', '300000']]) {
-    await a.getByRole('button', { name: '＋ Thêm vật tư' }).click(); await a.getByLabel('Tên vật tư').fill(t); await a.getByLabel('Đơn vị tính').fill(d)
-    await a.getByLabel('Khối lượng theo dự toán').fill(k); await a.getByLabel('Đơn giá dự toán').fill(g); await a.getByRole('button', { name: 'Lưu', exact: true }).click(); await a.getByText(t).first().waitFor()
-  }
+  // Xi măng: chọn nhanh từ danh mục, chỉ nhập khối lượng
+  await a.getByRole('button', { name: '＋ Thêm vật tư' }).click(); await a.locator('button', { hasText: 'Chọn từ danh mục vật tư mẫu' }).click()
+  await a.getByPlaceholder('Gõ để tìm…').fill('xi mang'); await a.locator('div.fixed.z-50 button', { hasText: 'Xi măng' }).first().click()
+  kt((await a.getByLabel('Tên vật tư').inputValue()) === 'Xi măng' && (await a.getByLabel('Đơn vị tính').inputValue()) === 'tấn' && (await a.getByLabel('Đơn giá dự toán').inputValue()) === '1500000', 'chọn từ danh mục: tự điền tên, đơn vị, đơn giá')
+  await a.getByLabel('Khối lượng theo dự toán').fill('100'); await a.getByRole('button', { name: 'Lưu', exact: true }).click(); await a.getByText('Xi măng').first().waitFor()
+  // Cát vàng: gõ tay, tự lưu thêm vào danh mục chung
+  await a.getByRole('button', { name: '＋ Thêm vật tư' }).click(); await a.getByLabel('Tên vật tư').fill('Cát vàng'); await a.getByLabel('Đơn vị tính').fill('m3')
+  await a.getByLabel('Khối lượng theo dự toán').fill('50'); await a.getByLabel('Đơn giá dự toán').fill('300000')
+  kt(await a.getByText(/Lưu vật tư này vào danh mục/).isVisible(), 'vật tư gõ tay mới: có ô lưu vào danh mục chung')
+  await a.getByRole('button', { name: 'Lưu', exact: true }).click(); await a.getByText('Cát vàng').first().waitFor()
+  eq(sql("select count(*) from danh_muc_vat_tu"), 2, 'vật tư gõ tay tự thêm vào danh mục chung')
+  eq(sql(`select count(*) from vat_tu_mau where cong_trinh_id='${idA}'`), 2, 'Cầu A có 2 vật tư theo dự toán')
+  kt(await a.getByRole('link', { name: 'Vật tư theo dự toán' }).first().isVisible(), 'thẻ đổi tên thành “Vật tư theo dự toán”')
+  await a.screenshot({ path: OUT + '/02b-vat-tu-theo-du-toan.png' })
   const ExcelJS = require(path.resolve(__dirname, '../../app/node_modules/exceljs'))
   const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet('S'); ws.addRow(['Tên vật tư', 'Đơn vị tính', 'Khối lượng', 'Đơn giá']); ws.addRow(['Thép phi 10', 'kg', 1000, 18000]); ws.addRow(['Đá 1x2', 'm3', 30, 250000]); ws.addRow(['Dòng lỗi', '', 5, 1])
   const xl = path.join(OUT, 'vat-tu.xlsx'); await wb.xlsx.writeFile(xl)
@@ -131,6 +146,7 @@ const chonVT = async (p, i, ten) => { await p.locator('button', { hasText: 'Ch�
   eq(sql("select hanh_dong from nhat_ky where bang='phieu_nhap_vt' order by id desc limit 1"), 'XOA', 'nhật ký ghi người xóa')
   await k1.goto(URL + '#/tai-khoan'); await k1.waitForTimeout(600)
   kt(!(await k1.getByText('Quản lý tài khoản').first().isVisible().catch(() => false)) || (await k1.url()).endsWith('#/'), 'KT không vào được trang Quản lý tài khoản')
+  await k1.goto(URL + '#/vat-tu-mau'); await k1.waitForTimeout(600); kt((await k1.url()).endsWith('#/'), 'KT không vào được trang Nhập vật tư mẫu (chỉ Admin)')
 
   buoc('7. Chi phí đủ 3 loại chứng từ + tổng hợp + biểu đồ')
   await k1.goto(`${URL}#/ct/${idA}/chi-phi`); await k1.getByText('Nhập chi phí hàng ngày').waitFor()
