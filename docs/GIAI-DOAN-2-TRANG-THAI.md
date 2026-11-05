@@ -2,7 +2,7 @@
 
 | Bộ kiểm thử | Cách chạy | Kết quả gần nhất |
 |---|---|---|
-| CSDL + phân quyền + thông báo đẩy + sao lưu (PostgreSQL 16 thật) | `bash supabase/tests/run.sh` | 200 kiểm tra đạt |
+| CSDL + phân quyền + thông báo đẩy + sao lưu (PostgreSQL 16 thật) | `bash supabase/tests/run.sh` | 186 kiểm tra đạt |
 | Hàm máy chủ (mã thật, thư viện web-push thật, máy chủ đẩy HTTPS giả) | `cd tests/edge && npm i && node edge.test.mjs` | 25 đạt |
 | Công thức + mã hóa sao lưu | `cd app && npx vitest run` | 13 đạt |
 | Trình duyệt đầu-cuối (PostgreSQL + PostgREST thật) | `tests/e2e/start-infra.sh` rồi `NODE_PATH=$(npm root -g) node tests/e2e/e2e.cjs` | 159 đạt |
